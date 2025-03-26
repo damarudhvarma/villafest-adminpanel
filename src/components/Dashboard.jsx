@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,11 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import ListingsTable from "./ListingsTable";
 import ReservationsTable from "./ReservationsTable";
 import CategoriesTable from "./CategoriesTable";
+import { AdminContext } from "@/context/AdminContext";
 
 const Dashboard = () => {
   const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Listings");
-
+  const {Admin}= useContext(AdminContext);
+console.log(Admin);
   const renderContent = () => {
     switch (activeTab) {
       case "Listings":
@@ -42,7 +44,7 @@ const Dashboard = () => {
           Dashboard
         </h1>
         <p className="mt-2 text-sm sm:text-base text-gray-600">
-          Welcome back, Admin
+          Welcome back, {Admin.name}
         </p>
       </div>
 

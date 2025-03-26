@@ -1,11 +1,17 @@
 import React from "react";
-import Dashboard from "./components/Dashboard";
+import { BrowserRouter } from "react-router-dom";
+import AppRoutes from "./routes/AppRoutes";
+import { AdminProvider } from "./context/AdminContext";
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Dashboard />
-    </div>
+    <AdminProvider>
+      <BrowserRouter>
+        <div className="min-h-screen bg-gray-100">
+          <AppRoutes />
+        </div>
+      </BrowserRouter>
+    </AdminProvider>
   );
 }
 
