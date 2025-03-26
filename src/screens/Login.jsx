@@ -32,7 +32,7 @@ const Login = () => {
         email: formData.email,
         password: formData.password,
       });
-      console.log(res);
+     
       if (res.status === 200) {
         setAdmin(res.data.data);
         localStorage.setItem("Token", res.data.token);
