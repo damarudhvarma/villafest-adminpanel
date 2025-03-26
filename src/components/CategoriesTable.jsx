@@ -11,14 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +23,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+
+import axiosinstance from "@/axios/axios";
 
 const CategoriesTable = () => {
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -50,15 +45,37 @@ const CategoriesTable = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement category creation logic
-    console.log({ categoryName, categoryImage, isActive });
-    setIsAddCategoryOpen(false);
-    setCategoryName("");
-    setCategoryImage(null);
-    setImagePreview(null);
-    setIsActive(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("name", categoryName);
+      formData.append("image", categoryImage);
+      formData.append("isActive", isActive);
+
+      const response = await axiosinstance.post(
+        "/categories/create",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setIsAddCategoryOpen(false);
+        setCategoryName("");
+        setCategoryImage(null);
+        setImagePreview(null);
+        setIsActive(true);
+        // TODO: Add toast notification for success
+      }
+    } catch (error) {
+      console.error("Error creating category:", error);
+      // TODO: Add toast notification for error
+    }
   };
 
   const handleDeleteCategory = (categoryId) => {
