@@ -509,17 +509,17 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="bg-gradient-to-br from-indigo-50 to-white rounded-lg border border-indigo-100 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Properties</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm text-indigo-600">Total Properties</p>
+              <h3 className="text-2xl font-bold text-indigo-900 mt-1">
                 {totalProperties}
               </h3>
             </div>
-            <div className="bg-blue-50 p-3 rounded-full">
+            <div className="bg-indigo-100 p-3 rounded-full">
               <svg
-                className="w-6 h-6 text-blue-600"
+                className="w-6 h-6 text-indigo-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -535,15 +535,15 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-lg border border-emerald-100 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Active Reservations</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">12</h3>
+              <p className="text-sm text-emerald-600">Active Reservations</p>
+              <h3 className="text-2xl font-bold text-emerald-900 mt-1">12</h3>
             </div>
-            <div className="bg-green-50 p-3 rounded-full">
+            <div className="bg-emerald-100 p-3 rounded-full">
               <svg
-                className="w-6 h-6 text-green-600"
+                className="w-6 h-6 text-emerald-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -559,15 +559,17 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="bg-gradient-to-br from-violet-50 to-white rounded-lg border border-violet-100 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Revenue</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">₹24,500</h3>
+              <p className="text-sm text-violet-600">Total Revenue</p>
+              <h3 className="text-2xl font-bold text-violet-900 mt-1">
+                ₹24,500
+              </h3>
             </div>
-            <div className="bg-purple-50 p-3 rounded-full">
+            <div className="bg-violet-100 p-3 rounded-full">
               <svg
-                className="w-6 h-6 text-purple-600"
+                className="w-6 h-6 text-violet-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -583,15 +585,15 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="bg-gradient-to-br from-amber-50 to-white rounded-lg border border-amber-100 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Occupancy Rate</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">85%</h3>
+              <p className="text-sm text-amber-600">Occupancy Rate</p>
+              <h3 className="text-2xl font-bold text-amber-900 mt-1">85%</h3>
             </div>
-            <div className="bg-orange-50 p-3 rounded-full">
+            <div className="bg-amber-100 p-3 rounded-full">
               <svg
-                className="w-6 h-6 text-orange-600"
+                className="w-6 h-6 text-amber-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
