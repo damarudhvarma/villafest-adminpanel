@@ -103,7 +103,7 @@ const ListingsTable = ({ onAddProperty }) => {
                     {property.title}
                   </TableCell>
                   <TableCell>{property.category?.name}</TableCell>
-                  <TableCell>${property.price}</TableCell>
+                  <TableCell>₹{property.price}</TableCell>
                   <TableCell>
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
@@ -154,17 +154,23 @@ const ListingsTable = ({ onAddProperty }) => {
                   <h3 className="font-medium text-sm text-gray-500">
                     Regular Price
                   </h3>
-                  <p>${selectedProperty.price}</p>
+                  <p>₹{selectedProperty.price}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">
                     Weekend Price
                   </h3>
-                  <p>${selectedProperty.weekendPrice}</p>
+                  <p>₹{selectedProperty.weekendPrice}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">Status</h3>
                   <p>{selectedProperty.isActive ? "Active" : "Inactive"}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm text-gray-500">
+                    Maximum Guests
+                  </h3>
+                  <p>{selectedProperty.maxGuests} guests</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">
@@ -209,8 +215,8 @@ const ListingsTable = ({ onAddProperty }) => {
               <div>
                 <h3 className="font-medium text-sm text-gray-500">Amenities</h3>
                 <ul className="mt-1 list-disc list-inside">
-                  {selectedProperty.amenities.map((amenity, index) => (
-                    <li key={index}>{amenity}</li>
+                  {selectedProperty.amenities.map((amenity) => (
+                    <li key={amenity._id}>{amenity.name}</li>
                   ))}
                 </ul>
               </div>

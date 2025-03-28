@@ -11,6 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ImageIcon, Upload } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import {
   AlertDialog,
@@ -38,6 +45,7 @@ const AmenitiesTable = () => {
   const [error, setError] = useState(null);
   const [selectedIcon, setSelectedIcon] = useState(null);
   const [iconPreview, setIconPreview] = useState(null);
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
 
   useEffect(() => {
     fetchAmenities();
@@ -69,6 +77,15 @@ const AmenitiesTable = () => {
     }
   };
 
+  const handleAmenitySelect = (value) => {
+    setSelectedAmenities((prev) => {
+      if (prev.includes(value)) {
+        return prev.filter((item) => item !== value);
+      }
+      return [...prev, value];
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -78,11 +95,6 @@ const AmenitiesTable = () => {
       formData.append("isActive", isActive);
       if (selectedIcon) {
         formData.append("icon", selectedIcon);
-      }
-
-      // Log the FormData contents for debugging
-      for (let pair of formData.entries()) {
-        console.log(pair[0] + ": " + pair[1]);
       }
 
       const response = await axiosinstance.post("/amenities/create", formData, {
@@ -98,11 +110,11 @@ const AmenitiesTable = () => {
         setIsActive(true);
         setSelectedIcon(null);
         setIconPreview(null);
+        setSelectedAmenities([]);
         fetchAmenities();
       }
     } catch (error) {
       console.error("Error creating amenity:", error);
-      // Add error handling UI feedback here
       if (error.response) {
         console.error("Error response:", error.response.data);
       }
@@ -138,6 +150,7 @@ const AmenitiesTable = () => {
         setSelectedIcon(null);
         setIconPreview(null);
         setEditingAmenity(null);
+        setSelectedAmenities([]);
         fetchAmenities();
       }
     } catch (error) {
@@ -288,7 +301,9 @@ const AmenitiesTable = () => {
                     <td className="p-4">
                       {amenity.iconUrl ? (
                         <img
-                          src={`${import.meta.env.VITE_SERVER_URL}/${amenity.icon}`}
+                          src={`${import.meta.env.VITE_SERVER_URL}/${
+                            amenity.icon
+                          }`}
                           alt={amenity.name}
                           className="w-8 h-8 object-contain"
                         />

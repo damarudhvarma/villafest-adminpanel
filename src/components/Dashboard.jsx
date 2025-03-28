@@ -44,6 +44,21 @@ import axiosinstance from "@/axios/axios";
 import { Switch } from "@/components/ui/switch";
 import { CookingPot } from "lucide-react";
 import AmenitiesTable from "./AmenitiesTable";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import AddPropertyModal from "./AddPropertyModal";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -72,7 +87,11 @@ const Dashboard = () => {
     state: "",
     postalCode: "",
     isActive: true,
+    maxGuests: "",
   });
+  const [amenities, setAmenities] = useState([]);
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [openAmenities, setOpenAmenities] = useState(false);
 
   useEffect(() => {
     const fetchAdmin = async () => {
@@ -107,6 +126,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    fetchAmenities();
   }, []);
 
   const createMarker = useCallback((map, position) => {
@@ -243,10 +266,8 @@ const Dashboard = () => {
           .split(",")
           .map((rule) => rule.trim())
           .filter(Boolean),
-        amenities: formData.amenities
-          .split(",")
-          .map((amenity) => amenity.trim())
-          .filter(Boolean),
+        amenities: selectedAmenities.map((amenity) => amenity._id),
+        maxGuests: Number(formData.maxGuests),
         latitude: Number(formData.latitude),
         longitude: Number(formData.longitude),
         address: formData.address,
@@ -282,13 +303,14 @@ const Dashboard = () => {
           state: "",
           postalCode: "",
           isActive: true,
+          maxGuests: "",
         });
-        // You might want to refresh the properties list here
-        // fetchProperties();
+        setSelectedAmenities([]);
+        // Refresh the properties list
+        fetchTotalProperties();
       }
     } catch (error) {
       console.error("Error creating property:", error);
-      // You might want to show an error message to the user here
     }
   };
 
@@ -305,7 +327,7 @@ const Dashboard = () => {
         const lng = parseFloat(formData.longitude);
         if (!isNaN(lat) && !isNaN(lng)) {
           initialCenter = { lat, lng };
-          initialZoom = 15;
+          initialZoom = 17;
         }
       }
 
@@ -313,8 +335,15 @@ const Dashboard = () => {
         center: initialCenter,
         zoom: initialZoom,
         mapTypeControl: true,
-        streetViewControl: false,
-        fullscreenControl: false,
+        streetViewControl: true,
+        fullscreenControl: true,
+        zoomControl: true,
+        mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+        gestureHandling: "cooperative",
+        mapTypeControlOptions: {
+          style: window.google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+          position: window.google.maps.ControlPosition.TOP_RIGHT,
+        },
       });
       mapRef.current = map;
 
@@ -324,7 +353,6 @@ const Dashboard = () => {
         const lng = parseFloat(formData.longitude);
         if (!isNaN(lat) && !isNaN(lng)) {
           createMarker(map, { lat, lng });
-          updateAddressFromCoordinates(lat, lng);
         }
       }
 
@@ -340,7 +368,8 @@ const Dashboard = () => {
           longitude: lng.toString(),
         }));
 
-        // Update address details
+        // Update marker and address
+        createMarker(map, { lat, lng });
         updateAddressFromCoordinates(lat, lng);
       });
     }
@@ -387,6 +416,17 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error("Error fetching total properties:", error);
+    }
+  };
+
+  const fetchAmenities = async () => {
+    try {
+      const response = await axiosinstance.get("/amenities");
+      if (response.data.success) {
+        setAmenities(response.data.amenities);
+      }
+    } catch (error) {
+      console.error("Error fetching amenities:", error);
     }
   };
 
@@ -523,7 +563,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Revenue</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">$24,500</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mt-1">₹24,500</h3>
             </div>
             <div className="bg-purple-50 p-3 rounded-full">
               <svg
@@ -655,275 +695,11 @@ const Dashboard = () => {
         {renderContent()}
       </div>
 
-      <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add New Property</DialogTitle>
-            <DialogDescription>
-              Fill in the property details. Click on the map to set the
-              location.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="grid gap-3 py-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  placeholder="Enter property title"
-                  className="h-8"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={handleCategoryChange}
-                >
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category._id} value={category._id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="price">Regular Price</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  placeholder="Enter regular price"
-                  className="h-8"
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="weekendPrice">Weekend Price</Label>
-                <Input
-                  id="weekendPrice"
-                  type="number"
-                  placeholder="Enter weekend price"
-                  className="h-8"
-                  value={formData.weekendPrice}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Enter property description"
-                className="h-16"
-                value={formData.description}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="rules">Property Rules</Label>
-              <Textarea
-                id="rules"
-                placeholder="Enter property rules separated by commas (e.g., No smoking, No pets, Check-in time)"
-                className="h-16"
-                value={formData.rules}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="amenities">Amenities</Label>
-              <Textarea
-                id="amenities"
-                placeholder="Enter property amenities separated by commas (e.g., WiFi, Pool, Parking)"
-                className="h-16"
-                value={formData.amenities}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="ownerName">Owner's Name</Label>
-                <Input
-                  id="ownerName"
-                  placeholder="Enter owner's name"
-                  className="h-8"
-                  value={formData.ownerName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="ownerContact">Owner's Contact</Label>
-                <Input
-                  id="ownerContact"
-                  type="tel"
-                  pattern="[0-9]{10}"
-                  maxLength="10"
-                  placeholder="Enter 10-digit mobile number"
-                  className="h-8"
-                  value={formData.ownerContact}
-                  onChange={(e) => {
-                    // Only allow numbers and limit to 10 digits
-                    const value = e.target.value
-                      .replace(/[^0-9]/g, "")
-                      .slice(0, 10);
-                    setFormData((prev) => ({
-                      ...prev,
-                      ownerContact: value,
-                    }));
-                  }}
-                  required
-                />
-                <p className="text-xs text-gray-500">
-                  Enter a valid 10-digit mobile number
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label>Location</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="latitude">Latitude</Label>
-                  <Input
-                    id="latitude"
-                    type="number"
-                    step="any"
-                    placeholder="Enter latitude"
-                    className="h-8"
-                    value={formData.latitude}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="longitude">Longitude</Label>
-                  <Input
-                    id="longitude"
-                    type="number"
-                    step="any"
-                    placeholder="Enter longitude"
-                    className="h-8"
-                    value={formData.longitude}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  placeholder="Enter street address"
-                  className="h-8"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    placeholder="Enter city"
-                    className="h-8"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    placeholder="Enter state"
-                    className="h-8"
-                    value={formData.state}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="postalCode">Postal Code</Label>
-                  <Input
-                    id="postalCode"
-                    placeholder="Enter postal code"
-                    className="h-8"
-                    value={formData.postalCode}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label>Map Preview</Label>
-              <div
-                id="map"
-                className="w-full h-[250px] bg-gray-100 rounded-md"
-                style={{ border: "1px solid #e2e8f0" }}
-              >
-                {!isMapLoaded && (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <p className="text-gray-500">Loading map...</p>
-                  </div>
-                )}
-              </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Click on the map to set the property location
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="isActive"
-                checked={formData.isActive}
-                onCheckedChange={handleActiveToggle}
-              />
-              <Label htmlFor="isActive">Property Active Status</Label>
-            </div>
-
-            <div className="flex justify-end gap-2 mt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsAddPropertyOpen(false)}
-                className="h-8"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="bg-[#0f172a] hover:bg-[#1e293b] text-white h-8"
-              >
-                Add Property
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <AddPropertyModal
+        isOpen={isAddPropertyOpen}
+        onClose={() => setIsAddPropertyOpen(false)}
+        onSuccess={handleSubmit}
+      />
     </div>
   );
 };

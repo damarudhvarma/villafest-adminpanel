@@ -28,9 +28,9 @@ const UsersTable = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axiosinstance.get("/users");
+      const response = await axiosinstance.get("/users/get-all-users");
       if (response.data.success) {
-        setUsers(response.data.users);
+        setUsers(response.data.data);
       }
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -63,19 +63,16 @@ const UsersTable = () => {
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                Name
+                First Name
+              </TableHead>
+              <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                Last Name
               </TableHead>
               <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                 Email
               </TableHead>
               <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                Phone
-              </TableHead>
-              <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                Status
-              </TableHead>
-              <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                Role
+                Mobile Number
               </TableHead>
               <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                 Joined Date
@@ -89,7 +86,7 @@ const UsersTable = () => {
             {users.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan="7"
+                  colSpan="6"
                   className="text-center text-gray-500 py-8"
                 >
                   No users found.
@@ -98,21 +95,12 @@ const UsersTable = () => {
             ) : (
               users.map((user) => (
                 <TableRow key={user._id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.phone}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        user.isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {user.isActive ? "Active" : "Inactive"}
-                    </span>
+                  <TableCell className="font-medium">
+                    {user.firstName}
                   </TableCell>
-                  <TableCell>{user.role}</TableCell>
+                  <TableCell>{user.lastName}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.mobileNumber}</TableCell>
                   <TableCell>
                     {new Date(user.createdAt).toLocaleDateString()}
                   </TableCell>
@@ -142,24 +130,26 @@ const UsersTable = () => {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="font-medium text-sm text-gray-500">Name</h3>
-                  <p>{selectedUser.name}</p>
+                  <h3 className="font-medium text-sm text-gray-500">
+                    First Name
+                  </h3>
+                  <p>{selectedUser.firstName}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm text-gray-500">
+                    Last Name
+                  </h3>
+                  <p>{selectedUser.lastName}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">Email</h3>
                   <p>{selectedUser.email}</p>
                 </div>
                 <div>
-                  <h3 className="font-medium text-sm text-gray-500">Phone</h3>
-                  <p>{selectedUser.phone}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-gray-500">Status</h3>
-                  <p>{selectedUser.isActive ? "Active" : "Inactive"}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-gray-500">Role</h3>
-                  <p>{selectedUser.role}</p>
+                  <h3 className="font-medium text-sm text-gray-500">
+                    Mobile Number
+                  </h3>
+                  <p>{selectedUser.mobileNumber}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">
@@ -169,45 +159,9 @@ const UsersTable = () => {
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">
-                    Last Login
+                    Last Updated
                   </h3>
-                  <p>{new Date(selectedUser.lastLogin).toLocaleDateString()}</p>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-medium text-sm text-gray-500">Address</h3>
-                <p className="mt-1">
-                  {selectedUser.address?.street}, {selectedUser.address?.city},{" "}
-                  {selectedUser.address?.state}{" "}
-                  {selectedUser.address?.postalCode}
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-medium text-sm text-gray-500">
-                  Booking History
-                </h3>
-                <div className="mt-1">
-                  <p>Total Bookings: {selectedUser.bookings?.length || 0}</p>
-                  <p>
-                    Completed:{" "}
-                    {selectedUser.bookings?.filter(
-                      (b) => b.status === "completed"
-                    ).length || 0}
-                  </p>
-                  <p>
-                    Pending:{" "}
-                    {selectedUser.bookings?.filter(
-                      (b) => b.status === "pending"
-                    ).length || 0}
-                  </p>
-                  <p>
-                    Cancelled:{" "}
-                    {selectedUser.bookings?.filter(
-                      (b) => b.status === "cancelled"
-                    ).length || 0}
-                  </p>
+                  <p>{new Date(selectedUser.updatedAt).toLocaleDateString()}</p>
                 </div>
               </div>
             </div>
