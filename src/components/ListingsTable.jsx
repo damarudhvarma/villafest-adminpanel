@@ -139,6 +139,52 @@ const ListingsTable = ({ onAddProperty }) => {
           </DialogHeader>
           {selectedProperty && (
             <div className="grid gap-4 py-4">
+              {/* Add Images Section */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium text-sm text-gray-500 mb-2">
+                    Main Image
+                  </h3>
+                  <div className="w-full h-64 rounded-lg overflow-hidden">
+                    <img
+                      src={`${import.meta.env.VITE_SERVER_URL}${
+                        selectedProperty.mainImage
+                      }`}
+                      alt={selectedProperty.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+
+                {selectedProperty.additionalImages &&
+                  selectedProperty.additionalImages.length > 0 && (
+                    <div>
+                      <h3 className="font-medium text-sm text-gray-500 mb-2">
+                        Additional Images
+                      </h3>
+                      <div className="grid grid-cols-3 gap-4">
+                        {selectedProperty.additionalImages.map(
+                          (image, index) => (
+                            <div
+                              key={index}
+                              className="aspect-square rounded-lg overflow-hidden"
+                            >
+                              <img
+                                src={`${
+                                  import.meta.env.VITE_SERVER_URL
+                                }${image}`}
+                                alt={`${selectedProperty.title} - ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+              </div>
+
+              {/* Existing Property Details */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">Title</h3>

@@ -274,34 +274,60 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const formattedData = {
-        title: formData.title,
-        category: formData.category,
-        price: Number(formData.price),
-        weekendPrice: Number(formData.weekendPrice),
-        description: formData.description,
-        rules: formData.rules
-          .split(",")
-          .map((rule) => rule.trim())
-          .filter(Boolean),
-        amenities: selectedAmenities.map((amenity) => amenity._id),
-        maxGuests: Number(formData.maxGuests),
-        latitude: Number(formData.latitude),
-        longitude: Number(formData.longitude),
-        address: formData.address,
-        ownerName: formData.ownerName,
-        ownerContact: formData.ownerContact,
-        city: formData.city,
-        state: formData.state,
-        postalCode: formData.postalCode,
-        isActive: formData.isActive,
-        mainImage: formData.mainImage,
-        additionalImages: formData.additionalImages,
-      };
+      // Create a FormData object to handle file uploads
+      const formDataToSend = new FormData();
 
+      // Append all the regular fields
+      formDataToSend.append("title", formData.title);
+      formDataToSend.append("category", formData.category);
+      formDataToSend.append("price", Number(formData.price));
+      formDataToSend.append("weekendPrice", Number(formData.weekendPrice));
+      formDataToSend.append("description", formData.description);
+      formDataToSend.append(
+        "rules",
+        JSON.stringify(
+          formData.rules
+            .split(",")
+            .map((rule) => rule.trim())
+            .filter(Boolean)
+        )
+      );
+      formDataToSend.append(
+        "amenities",
+        JSON.stringify(selectedAmenities.map((amenity) => amenity._id))
+      );
+      formDataToSend.append("maxGuests", Number(formData.maxGuests));
+      formDataToSend.append("latitude", Number(formData.latitude));
+      formDataToSend.append("longitude", Number(formData.longitude));
+      formDataToSend.append("address", formData.address);
+      formDataToSend.append("ownerName", formData.ownerName);
+      formDataToSend.append("ownerContact", formData.ownerContact);
+      formDataToSend.append("city", formData.city);
+      formDataToSend.append("state", formData.state);
+      formDataToSend.append("postalCode", formData.postalCode);
+      formDataToSend.append("isActive", formData.isActive);
+
+      // Append the main image
+      if (formData.mainImage) {
+        formDataToSend.append("mainImage", formData.mainImage);
+      }
+
+      // Append additional images
+      if (formData.additionalImages && formData.additionalImages.length > 0) {
+        formData.additionalImages.forEach((image) => {
+          formDataToSend.append("additionalImages", image);
+        });
+      }
+
+      // Update the axios request to handle FormData
       const response = await axiosinstance.post(
         "/properties/add-property",
-        formattedData
+        formDataToSend,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
       if (response.data.success) {
@@ -489,9 +515,16 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
               placeholder="Enter maximum number of guests"
               className="h-8"
               value={formData.maxGuests}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                const value = Math.max(1, parseInt(e.target.value) || 1);
+                setFormData((prev) => ({
+                  ...prev,
+                  maxGuests: value,
+                }));
+              }}
               required
             />
+            <p className="text-xs text-gray-500">Minimum 1 guest required</p>
           </div>
 
           <div className="grid gap-1.5">
