@@ -14,13 +14,30 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import axiosinstance from "@/axios/axios";
 
 const CouponsTable = () => {
   const [coupons, setCoupons] = useState([]);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
+  const [formData, setFormData] = useState({
+    code: "",
+    discount: "",
+    validFrom: "",
+    validUntil: "",
+    maxUsage: "",
+    minPurchase: "",
+    maxDiscount: "",
+    description: "",
+    terms: "",
+    isActive: true,
+  });
 
   useEffect(() => {
     fetchCoupons();
@@ -42,11 +59,69 @@ const CouponsTable = () => {
     setIsDetailsOpen(true);
   };
 
+  const handleInputChange = (e) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
+  const handleActiveToggle = (checked) => {
+    setFormData((prev) => ({
+      ...prev,
+      isActive: checked,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const formattedData = {
+        ...formData,
+        discount: Number(formData.discount),
+        maxUsage: Number(formData.maxUsage),
+        minPurchase: Number(formData.minPurchase),
+        maxDiscount: Number(formData.maxDiscount),
+        terms: formData.terms
+          .split(",")
+          .map((term) => term.trim())
+          .filter(Boolean),
+      };
+
+      const response = await axiosinstance.post(
+        "/coupons/add-coupon",
+        formattedData
+      );
+      if (response.data.success) {
+        setIsAddCouponOpen(false);
+        setFormData({
+          code: "",
+          discount: "",
+          validFrom: "",
+          validUntil: "",
+          maxUsage: "",
+          minPurchase: "",
+          maxDiscount: "",
+          description: "",
+          terms: "",
+          isActive: true,
+        });
+        fetchCoupons(); // Refresh the coupons list
+      }
+    } catch (error) {
+      console.error("Error creating coupon:", error);
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h2 className="text-lg sm:text-xl font-bold">Coupon Management</h2>
-        <Button className="bg-[#0f172a] hover:bg-[#1e293b] text-white w-full sm:w-auto">
+        <Button
+          className="bg-[#0f172a] hover:bg-[#1e293b] text-white w-full sm:w-auto"
+          onClick={() => setIsAddCouponOpen(true)}
+        >
           <span className="mr-2">+</span>
           Add Coupon
         </Button>
@@ -139,6 +214,154 @@ const CouponsTable = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Add Coupon Modal */}
+      <Dialog open={isAddCouponOpen} onOpenChange={setIsAddCouponOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Coupon</DialogTitle>
+            <DialogDescription>
+              Fill in the coupon details to create a new promotional code.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-1.5">
+                <Label htmlFor="code">Coupon Code</Label>
+                <Input
+                  id="code"
+                  placeholder="Enter coupon code"
+                  value={formData.code}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="discount">Discount Percentage</Label>
+                <Input
+                  id="discount"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="Enter discount percentage"
+                  value={formData.discount}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-1.5">
+                <Label htmlFor="validFrom">Valid From</Label>
+                <Input
+                  id="validFrom"
+                  type="date"
+                  value={formData.validFrom}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="validUntil">Valid Until</Label>
+                <Input
+                  id="validUntil"
+                  type="date"
+                  value={formData.validUntil}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="grid gap-1.5">
+                <Label htmlFor="maxUsage">Maximum Usage</Label>
+                <Input
+                  id="maxUsage"
+                  type="number"
+                  min="1"
+                  placeholder="Enter max usage"
+                  value={formData.maxUsage}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="minPurchase">Minimum Purchase</Label>
+                <Input
+                  id="minPurchase"
+                  type="number"
+                  min="0"
+                  placeholder="Enter min purchase"
+                  value={formData.minPurchase}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="maxDiscount">Maximum Discount</Label>
+                <Input
+                  id="maxDiscount"
+                  type="number"
+                  min="0"
+                  placeholder="Enter max discount"
+                  value={formData.maxDiscount}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Enter coupon description"
+                value={formData.description}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="terms">Terms & Conditions</Label>
+              <Textarea
+                id="terms"
+                placeholder="Enter terms & conditions separated by commas"
+                value={formData.terms}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="isActive"
+                checked={formData.isActive}
+                onCheckedChange={handleActiveToggle}
+              />
+              <Label htmlFor="isActive">Active Status</Label>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddCouponOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-[#0f172a] hover:bg-[#1e293b] text-white"
+              >
+                Add Coupon
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Details Modal */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>

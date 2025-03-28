@@ -23,6 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
 import ListingsTable from "./ListingsTable";
 import ReservationsTable from "./ReservationsTable";
 import CategoriesTable from "./CategoriesTable";
@@ -33,11 +42,16 @@ import UsersTable from "./UsersTable.jsx";
 import { AdminContext } from "@/context/AdminContext";
 import axiosinstance from "@/axios/axios";
 import { Switch } from "@/components/ui/switch";
+import { CookingPot } from "lucide-react";
+import AmenitiesTable from "./AmenitiesTable";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { Admin, setAdmin } = useContext(AdminContext);
   const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Listings");
   const [categories, setCategories] = useState([]);
+  const [totalProperties, setTotalProperties] = useState(0);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -59,7 +73,20 @@ const Dashboard = () => {
     postalCode: "",
     isActive: true,
   });
-  const { Admin } = useContext(AdminContext);
+
+  useEffect(() => {
+    const fetchAdmin = async () => {
+      const response = await axiosinstance.get("/admin/profile");
+      setAdmin(response.data.data);
+    };
+    if (Admin === null) {
+      fetchAdmin();
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTotalProperties();
+  }, []);
 
   useEffect(() => {
     if (
@@ -352,6 +379,17 @@ const Dashboard = () => {
     }
   };
 
+  const fetchTotalProperties = async () => {
+    try {
+      const response = await axiosinstance.get("/properties/get-properties");
+      if (response.data.success) {
+        setTotalProperties(response.data.properties.length);
+      }
+    } catch (error) {
+      console.error("Error fetching total properties:", error);
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case "Listings":
@@ -362,6 +400,8 @@ const Dashboard = () => {
         return <ReservationsTable />;
       case "Categories":
         return <CategoriesTable />;
+      case "Amenities":
+        return <AmenitiesTable />;
       case "Hosts":
         return <HostsTable />;
       case "Coupons":
@@ -377,15 +417,55 @@ const Dashboard = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      localStorage.removeItem("Token");
+      navigate("/login");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+
+  // Add a check for Admin
+  if (!Admin) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading...</h1>
+          <p className="text-gray-600">Please wait while we fetch your data.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-          Dashboard
-        </h1>
-        <p className="mt-2 text-sm sm:text-base text-gray-600">
-          Welcome back, {Admin.name}
-        </p>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            Dashboard
+          </h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600">
+            Welcome back, {Admin?.name || "Admin"}
+          </p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-[#0f172a] flex items-center justify-center text-white">
+                {(Admin?.name || "A").charAt(0).toUpperCase()}
+              </div>
+              <span className="hidden sm:inline">{Admin?.name || "Admin"}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
@@ -393,7 +473,9 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Properties</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">24</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mt-1">
+                {totalProperties}
+              </h3>
             </div>
             <div className="bg-blue-50 p-3 rounded-full">
               <svg
@@ -517,6 +599,16 @@ const Dashboard = () => {
             }`}
           >
             Categories
+          </button>
+          <button
+            onClick={() => setActiveTab("Amenities")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "Amenities"
+                ? "bg-[#0f172a] text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            Amenities
           </button>
           <button
             onClick={() => setActiveTab("Hosts")}
