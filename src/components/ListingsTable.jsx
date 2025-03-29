@@ -29,6 +29,7 @@ const ListingsTable = ({ onAddProperty }) => {
   const fetchProperties = async () => {
     try {
       const response = await axiosinstance.get("/properties/get-properties");
+      
       if (response.data.success) {
         setProperties(response.data.properties);
       }
