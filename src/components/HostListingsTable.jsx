@@ -2,13 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -22,28 +15,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { axiosinstance } from "@/axios/axios";
-import { useToast } from "@/components/ui/use-toast";
+import { hostAxiosInstance } from "@/axios/axios";
+import AddHostPropertyModal from "./AddHostPropertyModal";
 
-const HostPropertiesTable = () => {
-  const { toast } = useToast();
-  const [hostProperties, setHostProperties] = useState([]);
+const HostListingsTable = () => {
+  const [properties, setProperties] = useState([]);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchHostProperties();
+    fetchProperties();
   }, []);
 
-  const fetchHostProperties = async () => {
+  const fetchProperties = async () => {
     try {
-      const response = await axiosinstance.get("/host-properties/all");
-      console.log(response.data);
-      setHostProperties(response.data);
+      setIsLoading(true);
+      const response = await hostAxiosInstance.get("/host-properties");
+      if (response.data) {
+        setProperties(response.data);
+      }
     } catch (error) {
-      console.error("Error fetching host properties:", error);
+      console.error("Error fetching properties:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -52,67 +49,35 @@ const HostPropertiesTable = () => {
     setIsDetailsOpen(true);
   };
 
-  const handleApproveProperty = async (propertyId) => {
-    try {
-      await axiosinstance.patch(`/host-properties/${propertyId}/approve`);
-      toast({
-        title: "Success",
-        description: "Property approved successfully",
-        variant: "default",
-      });
-      fetchHostProperties(); // Refresh the list
-    } catch (error) {
-      console.error("Error approving property:", error);
-      toast({
-        title: "Error",
-        description: "Failed to approve property",
-        variant: "destructive",
-      });
-    }
+  const handleAddProperty = () => {
+    setIsAddModalOpen(true);
   };
 
-  const handleRejectProperty = async (propertyId) => {
-    try {
-      await axiosinstance.patch(`/host-properties/${propertyId}/reject`);
-      toast({
-        title: "Success",
-        description: "Property rejected successfully",
-        variant: "default",
-      });
-      fetchHostProperties(); // Refresh the list
-    } catch (error) {
-      console.error("Error rejecting property:", error);
-      toast({
-        title: "Error",
-        description: "Failed to reject property",
-        variant: "destructive",
-      });
-    }
+  const handlePropertyAdded = () => {
+    fetchProperties();
   };
 
-  const filteredProperties = hostProperties.filter((property) => {
-    const matchesSearch =
+  const filteredProperties = properties.filter(
+    (property) =>
       property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      property.category?.name
-        ?.toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      property.address.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      property.address.state.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "all" || property.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
+      property.category?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-        <h2 className="text-lg sm:text-xl font-bold">Host Properties</h2>
+        <h2 className="text-lg sm:text-xl font-bold">My Properties</h2>
+        <Button
+          className="bg-[#0f172a] hover:bg-[#1e293b] text-white w-full sm:w-auto"
+          onClick={handleAddProperty}
+        >
+          <span className="mr-2">+</span>
+          Add Property
+        </Button>
       </div>
 
-      {/* Search and Filter Section */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      {/* Search Input */}
+      <div className="mb-6">
         <Input
           type="text"
           placeholder="Search properties..."
@@ -120,17 +85,6 @@ const HostPropertiesTable = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Table */}
@@ -148,21 +102,27 @@ const HostPropertiesTable = () => {
                 Price
               </TableHead>
               <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                Weekend Price
-              </TableHead>
-              <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                 Status
               </TableHead>
               <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                Actions
+                More Details
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProperties.length === 0 ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan="6"
+                  colSpan="5"
+                  className="text-center text-gray-500 py-8"
+                >
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : filteredProperties.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan="5"
                   className="text-center text-gray-500 py-8"
                 >
                   No properties found.
@@ -176,7 +136,6 @@ const HostPropertiesTable = () => {
                   </TableCell>
                   <TableCell>{property.category?.name}</TableCell>
                   <TableCell>₹{property.price}</TableCell>
-                  <TableCell>₹{property.weekendPrice}</TableCell>
                   <TableCell>
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
@@ -192,34 +151,13 @@ const HostPropertiesTable = () => {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewDetails(property)}
-                      >
-                        View
-                      </Button>
-                      {property.status === "pending" && (
-                        <>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => handleApproveProperty(property._id)}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleRejectProperty(property._id)}
-                          >
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewDetails(property)}
+                    >
+                      View Details
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -308,7 +246,9 @@ const HostPropertiesTable = () => {
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-500">Maximum Guests</h3>
+                  <h3 className="font-medium text-sm text-gray-500">
+                    Maximum Guests
+                  </h3>
                   <p>{selectedProperty.maxGuests} guests</p>
                 </div>
               </div>
@@ -361,8 +301,15 @@ const HostPropertiesTable = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Add Property Modal */}
+      <AddHostPropertyModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onPropertyAdded={handlePropertyAdded}
+      />
     </>
   );
 };
 
-export default HostPropertiesTable;
+export default HostListingsTable;

@@ -24,7 +24,7 @@ import CouponsTable from "./CouponsTable";
 import HostPropertiesTable from "./HostPropertiesTable";
 import UsersTable from "./UsersTable.jsx";
 import { AdminContext } from "@/context/AdminContext";
-import axiosinstance from "@/axios/axios";
+import { axiosinstance } from "@/axios/axios";
 import { Switch } from "@/components/ui/switch";
 import { CookingPot } from "lucide-react";
 import AmenitiesTable from "./AmenitiesTable";

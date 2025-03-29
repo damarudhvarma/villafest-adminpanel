@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import axiosinstance from "@/axios/axios";
+import { axiosinstance } from "@/axios/axios";
 
 const HostsTable = () => {
   const [hosts, setHosts] = useState([]);
@@ -35,19 +35,19 @@ const HostsTable = () => {
       const response = await axiosinstance.get("/hosts");
       if (response.data.success) {
         // Transform the data to match our table structure
-        const transformedHosts = response.data.data.map((host) => ({
-          _id: host.id,
-          name: `${host.firstName} ${host.lastName}`,
+        const transformHost = (host) => ({
+          _id: host._id,
+          name: host.fullName,
           email: host.email,
-          contact: host.mobileNumber,
-          isActive: host.isActive || false,
-          properties: host.properties || [],
-          createdAt: host.createdAt || new Date().toISOString(),
-        }));
+          contact: host.phoneNumber,
+          isActive: host.isActive,
+          bankingDetails: host.bankingDetails,
+          createdAt: host.createdAt,
+        });
 
-        // Separate active and pending hosts
-        const activeHosts = transformedHosts.filter((host) => host.isActive);
-        const pendingHosts = transformedHosts.filter((host) => !host.isActive);
+        // Transform active and pending hosts
+        const activeHosts = response.data.data.activeHosts.map(transformHost);
+        const pendingHosts = response.data.data.pendingHosts.map(transformHost);
 
         setHosts(activeHosts);
         setPendingHosts(pendingHosts);
@@ -315,46 +315,93 @@ const HostsTable = () => {
           </DialogHeader>
           {selectedHost && (
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium text-sm text-gray-500">Name</h3>
-                  <p>{selectedHost.name}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-gray-500">Email</h3>
-                  <p>{selectedHost.email}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-gray-500">Contact</h3>
-                  <p>{selectedHost.contact}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-gray-500">Status</h3>
-                  <p>{selectedHost.isActive ? "Active" : "Pending"}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-gray-500">
-                    Total Properties
-                  </h3>
-                  <p>{selectedHost.properties?.length || 0}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-gray-500">
-                    Joined Date
-                  </h3>
-                  <p>{new Date(selectedHost.createdAt).toLocaleDateString()}</p>
+              {/* Basic Information */}
+              <div>
+                <h3 className="font-medium text-sm text-gray-500 mb-2">
+                  Basic Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">Name</h4>
+                    <p>{selectedHost.name}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">Email</h4>
+                    <p>{selectedHost.email}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Contact
+                    </h4>
+                    <p>{selectedHost.contact}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Status
+                    </h4>
+                    <p>{selectedHost.isActive ? "Active" : "Pending"}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Joined Date
+                    </h4>
+                    <p>
+                      {new Date(selectedHost.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
               </div>
 
+              {/* Banking Details */}
               <div>
-                <h3 className="font-medium text-sm text-gray-500">
+                <h3 className="font-medium text-sm text-gray-500 mb-2">
+                  Banking Details
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Account Holder Name
+                    </h4>
+                    <p>{selectedHost.bankingDetails?.accountHolderName}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Bank Name
+                    </h4>
+                    <p>{selectedHost.bankingDetails?.bankName}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Account Number
+                    </h4>
+                    <p>{selectedHost.bankingDetails?.accountNumber}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      IFSC Code
+                    </h4>
+                    <p>{selectedHost.bankingDetails?.ifscCode}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Properties Section */}
+              <div>
+                <h3 className="font-medium text-sm text-gray-500 mb-2">
                   Properties
                 </h3>
-                <ul className="mt-1 list-disc list-inside">
-                  {selectedHost.properties?.map((property) => (
-                    <li key={property._id}>{property.title}</li>
-                  ))}
-                </ul>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600">
+                    {selectedHost.properties?.length || 0} properties listed
+                  </p>
+                  {selectedHost.properties?.length > 0 && (
+                    <ul className="mt-2 list-disc list-inside text-sm text-gray-600">
+                      {selectedHost.properties.map((property) => (
+                        <li key={property._id}>{property.title}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
             </div>
           )}

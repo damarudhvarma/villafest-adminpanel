@@ -1,4 +1,3 @@
-
 import axios from "axios";
 import { AdminContext } from "../context/AdminContext";
 import React, { useState, useContext } from "react";
@@ -23,21 +22,23 @@ const Login = () => {
 
     setError("");
   };
-  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${import.meta.env.VITE_SERVER_URL}/admin/login`, {
-        email: formData.email,
-        password: formData.password,
-      });
-     
+      const res = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/admin/login`,
+        {
+          email: formData.email,
+          password: formData.password,
+        }
+      );
+
       if (res.status === 200) {
         setAdmin(res.data.data);
         localStorage.setItem("Token", res.data.token);
-        
-        navigate('/');
+
+        navigate("/");
         setFormData({
           email: "",
           password: "",
@@ -47,7 +48,6 @@ const Login = () => {
     } catch (err) {
       setError("Invalid email or password");
       console.error("Login error:", err);
-      
     }
   };
 
@@ -58,7 +58,7 @@ const Login = () => {
         <div>
           <h1 className="text-4xl font-bold text-white mb-4">VillaFest</h1>
           <p className="text-indigo-100 text-lg">
-            Your Ultimate Festival Management Platform
+            Your Ultimate Villa Management Platform
           </p>
         </div>
         <div className="space-y-4">
@@ -218,6 +218,28 @@ const Login = () => {
               Sign in
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Host Login Button */}
+          <div className="mt-6">
+            <button
+              onClick={() => navigate("/host-login")}
+              className="w-full flex justify-center py-3 px-4 border border-indigo-600 rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+            >
+              Login as Host
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import axiosinstance from "@/axios/axios";
+import { axiosinstance } from "@/axios/axios";
 
 const UsersTable = () => {
   const [users, setUsers] = useState([]);

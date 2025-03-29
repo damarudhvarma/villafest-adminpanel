@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import axiosinstance from "@/axios/axios";
+import { axiosinstance } from "@/axios/axios";
 
 const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
   const [isMapLoaded, setIsMapLoaded] = useState(false);

@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-import axiosinstance from "@/axios/axios";
+import { axiosinstance } from "@/axios/axios";
 
 const CategoriesTable = () => {
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -259,7 +259,9 @@ const CategoriesTable = () => {
                   <tr key={category._id} className="border-b">
                     <td className="p-4">
                       <img
-                        src={`${import.meta.env.VITE_SERVER_URL}/${category.image}`}
+                        src={`${import.meta.env.VITE_SERVER_URL}/${
+                          category.image
+                        }`}
                         alt={category.name}
                         className="w-12 h-12 object-cover rounded-md"
                       />

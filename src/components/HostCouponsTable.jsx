@@ -21,11 +21,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { axiosinstance } from "@/axios/axios";
 
-const CouponsTable = () => {
+const HostCouponsTable = () => {
   const [coupons, setCoupons] = useState([]);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     code: "",
     discount: "",
@@ -45,12 +47,15 @@ const CouponsTable = () => {
 
   const fetchCoupons = async () => {
     try {
-      const response = await axiosinstance.get("/coupons");
+      setIsLoading(true);
+      const response = await axiosinstance.get("/hosts/coupons");
       if (response.data.success) {
         setCoupons(response.data.coupons);
       }
     } catch (error) {
       console.error("Error fetching coupons:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -89,10 +94,7 @@ const CouponsTable = () => {
           .filter(Boolean),
       };
 
-      const response = await axiosinstance.post(
-        "/coupons/add-coupon",
-        formattedData
-      );
+      const response = await axiosinstance.post("/host/coupons", formattedData);
       if (response.data.success) {
         setIsAddCouponOpen(false);
         setFormData({
@@ -107,17 +109,23 @@ const CouponsTable = () => {
           terms: "",
           isActive: true,
         });
-        fetchCoupons(); // Refresh the coupons list
+        fetchCoupons();
       }
     } catch (error) {
       console.error("Error creating coupon:", error);
     }
   };
 
+  const filteredCoupons = coupons.filter(
+    (coupon) =>
+      coupon.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      coupon.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-        <h2 className="text-lg sm:text-xl font-bold">Coupon Management</h2>
+        <h2 className="text-lg sm:text-xl font-bold">My Coupons</h2>
         <Button
           className="bg-[#0f172a] hover:bg-[#1e293b] text-white w-full sm:w-auto"
           onClick={() => setIsAddCouponOpen(true)}
@@ -133,6 +141,8 @@ const CouponsTable = () => {
           type="text"
           placeholder="Search coupons..."
           className="w-full sm:max-w-md border-gray-300"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
@@ -165,7 +175,16 @@ const CouponsTable = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {coupons.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan="7"
+                  className="text-center text-gray-500 py-8"
+                >
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : filteredCoupons.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan="7"
@@ -175,7 +194,7 @@ const CouponsTable = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              coupons.map((coupon) => (
+              filteredCoupons.map((coupon) => (
                 <TableRow key={coupon._id}>
                   <TableCell className="font-medium">{coupon.code}</TableCell>
                   <TableCell>{coupon.discount}%</TableCell>
@@ -412,13 +431,13 @@ const CouponsTable = () => {
                   <h3 className="font-medium text-sm text-gray-500">
                     Min Purchase
                   </h3>
-                  <p>${selectedCoupon.minPurchase}</p>
+                  <p>₹{selectedCoupon.minPurchase}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">
                     Max Discount
                   </h3>
-                  <p>${selectedCoupon.maxDiscount}</p>
+                  <p>₹{selectedCoupon.maxDiscount}</p>
                 </div>
               </div>
 
@@ -447,4 +466,4 @@ const CouponsTable = () => {
   );
 };
 
-export default CouponsTable;
+export default HostCouponsTable;

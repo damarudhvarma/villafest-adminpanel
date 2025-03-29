@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { ImageIcon } from "lucide-react";
 import { axiosinstance } from "@/axios/axios";
 
-const AmenitiesTable = () => {
+const HostAmenitiesTable = () => {
   const [amenities, setAmenities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchAmenities();
@@ -25,10 +26,25 @@ const AmenitiesTable = () => {
     }
   };
 
+  const filteredAmenities = amenities.filter((amenity) =>
+    amenity.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Available Amenities</h2>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-lg sm:text-xl font-bold">Available Amenities</h2>
+      </div>
+
+      {/* Search Input */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Search amenities..."
+          className="w-full sm:max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0f172a] focus:border-transparent"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
 
       <div className="border rounded-lg">
@@ -54,14 +70,14 @@ const AmenitiesTable = () => {
                     {error}
                   </td>
                 </tr>
-              ) : amenities.length === 0 ? (
+              ) : filteredAmenities.length === 0 ? (
                 <tr>
                   <td colSpan="3" className="p-4 text-center">
                     No amenities found
                   </td>
                 </tr>
               ) : (
-                amenities.map((amenity) => (
+                filteredAmenities.map((amenity) => (
                   <tr key={amenity._id} className="border-b">
                     <td className="p-4">
                       {amenity.iconUrl ? (
@@ -99,4 +115,4 @@ const AmenitiesTable = () => {
   );
 };
 
-export default AmenitiesTable;
+export default HostAmenitiesTable;

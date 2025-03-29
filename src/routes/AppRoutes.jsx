@@ -1,10 +1,15 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "../screens/Login";
 import Dashboard from "@/components/Dashboard";
 import AdminAuth from "@/auth/AdminAuth";
 import HostDashboard from "@/components/HostDashboard";
-const AppRoutes = () => {
+import Hostlogin from "@/components/Hostlogin";
+
+import HostAuth from "@/auth/HostAuth";
+;
+
+function AppRoutes() {
   return (
     <Routes>
       <Route
@@ -16,9 +21,18 @@ const AppRoutes = () => {
         }
       />
       <Route path="/login" element={<Login />} />
-      <Route path="/host-dashboard" element={<HostDashboard />} />
+      <Route path="/host-login" element={<Hostlogin />} />
+      <Route
+        path="/host-dashboard"
+        element={
+          <HostAuth>
+            <HostDashboard />
+          </HostAuth>
+        
+        }
+      />
     </Routes>
   );
-};
+}
 
 export default AppRoutes;
