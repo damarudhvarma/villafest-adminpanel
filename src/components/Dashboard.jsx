@@ -23,6 +23,7 @@ import HostsTable from "./HostsTable";
 import CouponsTable from "./CouponsTable";
 import HostPropertiesTable from "./HostPropertiesTable";
 import UsersTable from "./UsersTable.jsx";
+import BannersTable from "./BannersTable";
 import { AdminContext } from "@/context/AdminContext";
 import { axiosinstance } from "@/axios/axios";
 import { Switch } from "@/components/ui/switch";
@@ -434,6 +435,8 @@ const Dashboard = () => {
         return <HostPropertiesTable />;
       case "Users":
         return <UsersTable />;
+      case "Banners":
+        return <BannersTable />;
       default:
         return (
           <ListingsTable onAddProperty={() => setIsAddPropertyOpen(true)} />
@@ -675,6 +678,16 @@ const Dashboard = () => {
             }`}
           >
             Users
+          </button>
+          <button
+            onClick={() => setActiveTab("Banners")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "Banners"
+                ? "bg-[#0f172a] text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            Banners
           </button>
         </div>
 
