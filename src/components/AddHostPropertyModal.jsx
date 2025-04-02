@@ -44,6 +44,7 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
   const [mainImage, setMainImage] = useState(null);
   const [additionalImages, setAdditionalImages] = useState([]);
   const [newRule, setNewRule] = useState("");
+  const [customAmenities, setCustomAmenities] = useState(""); // New state for custom amenities
 
   useEffect(() => {
     if (isOpen) {
@@ -343,10 +344,28 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
         },
       };
 
+      // Process custom amenities
+      let customAmenitiesArray = [];
+      if (customAmenities.trim()) {
+        customAmenitiesArray = customAmenities
+          .split(",")
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0);
+      }
+
       // Append all form fields
       Object.keys(dataToSend).forEach((key) => {
-        if (key === "amenities" || key === "rules" || key === "owner") {
+        if (key === "rules" || key === "owner") {
           formDataToSend.append(key, JSON.stringify(dataToSend[key]));
+        } else if (key === "amenities") {
+          // Include both selected amenities and custom amenities
+          formDataToSend.append(
+            key,
+            JSON.stringify({
+              selected: dataToSend[key],
+              custom: customAmenitiesArray,
+            })
+          );
         } else {
           formDataToSend.append(key, dataToSend[key]);
         }
@@ -400,6 +419,7 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
         });
         setMainImage(null);
         setAdditionalImages([]);
+        setCustomAmenities("");
       }
     } catch (error) {
       console.error("Error adding property:", error);
@@ -570,6 +590,18 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
                   <Label htmlFor={amenity._id}>{amenity.name}</Label>
                 </div>
               ))}
+            </div>
+
+            {/* Custom Amenities */}
+            <div className="mt-4">
+              <Label htmlFor="customAmenities">Custom Amenities</Label>
+              <Textarea
+                id="customAmenities"
+                placeholder="Enter additional amenities separated by commas (e.g., Coffee maker, BBQ grill, Board games)"
+                value={customAmenities}
+                onChange={(e) => setCustomAmenities(e.target.value)}
+                className="mt-1"
+              />
             </div>
           </div>
 
