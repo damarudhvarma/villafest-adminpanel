@@ -52,6 +52,9 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("Listings");
   const [categories, setCategories] = useState([]);
   const [totalProperties, setTotalProperties] = useState(0);
+  const [activeReservations, setActiveReservations] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [occupancyRate, setOccupancyRate] = useState(0);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -90,6 +93,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchTotalProperties();
+    fetchActiveReservations();
+    fetchTotalRevenue();
+    fetchOccupancyRate();
   }, []);
 
   useEffect(() => {
@@ -404,6 +410,68 @@ const Dashboard = () => {
     }
   };
 
+  const fetchActiveReservations = async () => {
+    try {
+      const response = await axiosinstance.get("/bookings/all");
+      if (response.data.success) {
+        const currentDate = new Date();
+        const activeReservations = response.data.data.filter((reservation) => {
+          const checkOutDate = new Date(reservation.bookingDate.checkOut);
+          return (
+            reservation.status === "confirmed" && checkOutDate > currentDate
+          );
+        });
+        setActiveReservations(activeReservations.length);
+      }
+    } catch (error) {
+      console.error("Error fetching active reservations:", error);
+    }
+  };
+
+  const fetchTotalRevenue = async () => {
+    try {
+      const response = await axiosinstance.get("/bookings/all");
+      if (response.data.success) {
+        const totalRevenue = response.data.data.reduce(
+          (sum, reservation) => sum + reservation.totalPrice,
+          0
+        );
+        setTotalRevenue(totalRevenue);
+      }
+    } catch (error) {
+      console.error("Error fetching total revenue:", error);
+    }
+  };
+
+  const fetchOccupancyRate = async () => {
+    try {
+      const response = await axiosinstance.get("/properties/get-properties");
+      if (response.data.success) {
+        const totalProperties = response.data.properties.length;
+        if (totalProperties > 0) {
+          const bookingsResponse = await axiosinstance.get("/bookings/all");
+          if (bookingsResponse.data.success) {
+            const currentDate = new Date();
+            const activeBookings = bookingsResponse.data.data.filter(
+              (booking) => {
+                const checkOutDate = new Date(booking.bookingDate.checkOut);
+                return (
+                  booking.status === "confirmed" && checkOutDate > currentDate
+                );
+              }
+            );
+            const occupancyRate = Math.round(
+              (activeBookings.length / totalProperties) * 100
+            );
+            setOccupancyRate(occupancyRate);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching occupancy rate:", error);
+    }
+  };
+
   const fetchAmenities = async () => {
     try {
       const response = await axiosinstance.get("/amenities");
@@ -526,7 +594,9 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-emerald-600">Active Reservations</p>
-              <h3 className="text-2xl font-bold text-emerald-900 mt-1">12</h3>
+              <h3 className="text-2xl font-bold text-emerald-900 mt-1">
+                {activeReservations}
+              </h3>
             </div>
             <div className="bg-emerald-100 p-3 rounded-full">
               <svg
@@ -551,7 +621,7 @@ const Dashboard = () => {
             <div>
               <p className="text-sm text-violet-600">Total Revenue</p>
               <h3 className="text-2xl font-bold text-violet-900 mt-1">
-                ₹24,500
+                ₹{totalRevenue.toLocaleString()}
               </h3>
             </div>
             <div className="bg-violet-100 p-3 rounded-full">
@@ -576,7 +646,9 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-amber-600">Occupancy Rate</p>
-              <h3 className="text-2xl font-bold text-amber-900 mt-1">85%</h3>
+              <h3 className="text-2xl font-bold text-amber-900 mt-1">
+                {occupancyRate}%
+              </h3>
             </div>
             <div className="bg-amber-100 p-3 rounded-full">
               <svg
