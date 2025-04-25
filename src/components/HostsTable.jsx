@@ -33,6 +33,7 @@ const HostsTable = () => {
     try {
       setIsLoading(true);
       const response = await axiosinstance.get("/hosts");
+      console.log(response.data);
       if (response.data.success) {
         // Transform the data to match our table structure
         const transformHost = (host) => ({
@@ -43,6 +44,7 @@ const HostsTable = () => {
           isActive: host.isActive,
           bankingDetails: host.bankingDetails,
           createdAt: host.createdAt,
+          enquiry: host.enquiry,
         });
 
         // Transform active and pending hosts
@@ -81,7 +83,7 @@ const HostsTable = () => {
 
   const handleRejectHost = async (hostId) => {
     try {
-      const response = await axiosinstance.put(`/hosts/${hostId}/reject`);
+      const response = await axiosinstance.delete(`/hosts/${hostId}/reject`);
       if (response.data.success) {
         // Refresh the lists after successful rejection
         fetchHosts();
@@ -145,9 +147,6 @@ const HostsTable = () => {
                   Status
                 </TableHead>
                 <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                  Properties
-                </TableHead>
-                <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Actions
                 </TableHead>
               </TableRow>
@@ -156,7 +155,7 @@ const HostsTable = () => {
               {isLoading ? (
                 <TableRow>
                   <TableCell
-                    colSpan="6"
+                    colSpan="5"
                     className="text-center text-gray-500 py-8"
                   >
                     Loading...
@@ -165,7 +164,7 @@ const HostsTable = () => {
               ) : filteredHosts.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan="6"
+                    colSpan="5"
                     className="text-center text-gray-500 py-8"
                   >
                     No active hosts found.
@@ -182,7 +181,6 @@ const HostsTable = () => {
                         Active
                       </span>
                     </TableCell>
-                    <TableCell>{host.properties?.length || 0}</TableCell>
                     <TableCell>
                       <Button
                         variant="outline"
@@ -235,9 +233,6 @@ const HostsTable = () => {
                   Status
                 </TableHead>
                 <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                  Properties
-                </TableHead>
-                <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                   Actions
                 </TableHead>
               </TableRow>
@@ -246,7 +241,7 @@ const HostsTable = () => {
               {isLoading ? (
                 <TableRow>
                   <TableCell
-                    colSpan="6"
+                    colSpan="5"
                     className="text-center text-gray-500 py-8"
                   >
                     Loading...
@@ -255,7 +250,7 @@ const HostsTable = () => {
               ) : filteredPendingHosts.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan="6"
+                    colSpan="5"
                     className="text-center text-gray-500 py-8"
                   >
                     No pending approvals found.
@@ -272,7 +267,6 @@ const HostsTable = () => {
                         Pending
                       </span>
                     </TableCell>
-                    <TableCell>{host.properties?.length || 0}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button
@@ -316,7 +310,7 @@ const HostsTable = () => {
           {selectedHost && (
             <div className="grid gap-4 py-4">
               {/* Basic Information */}
-              <div>
+              <div className="bg-blue-50 p-4 rounded-lg">
                 <h3 className="font-medium text-sm text-gray-500 mb-2">
                   Basic Information
                 </h3>
@@ -353,7 +347,7 @@ const HostsTable = () => {
               </div>
 
               {/* Banking Details */}
-              <div>
+              <div className="bg-green-50 p-4 rounded-lg">
                 <h3 className="font-medium text-sm text-gray-500 mb-2">
                   Banking Details
                 </h3>
@@ -385,24 +379,171 @@ const HostsTable = () => {
                 </div>
               </div>
 
-              {/* Properties Section */}
-              <div>
-                <h3 className="font-medium text-sm text-gray-500 mb-2">
-                  Properties
-                </h3>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600">
-                    {selectedHost.properties?.length || 0} properties listed
-                  </p>
-                  {selectedHost.properties?.length > 0 && (
-                    <ul className="mt-2 list-disc list-inside text-sm text-gray-600">
-                      {selectedHost.properties.map((property) => (
-                        <li key={property._id}>{property.title}</li>
-                      ))}
-                    </ul>
+              {/* Enquiry Details */}
+              {selectedHost.enquiry && (
+                <>
+                  {/* Location Details */}
+                  {selectedHost.enquiry.locationDetails && (
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h3 className="font-medium text-sm text-gray-500 mb-2">
+                        Location Details
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                          <h4 className="text-xs font-medium text-gray-500">
+                            Address
+                          </h4>
+                          <p>{selectedHost.enquiry.locationDetails.address}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-medium text-gray-500">
+                            City
+                          </h4>
+                          <p>{selectedHost.enquiry.locationDetails.city}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-medium text-gray-500">
+                            State
+                          </h4>
+                          <p>{selectedHost.enquiry.locationDetails.state}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-medium text-gray-500">
+                            Postal Code
+                          </h4>
+                          <p>
+                            {selectedHost.enquiry.locationDetails.postalCode}
+                          </p>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-medium text-gray-500">
+                            Country
+                          </h4>
+                          <p>{selectedHost.enquiry.locationDetails.country}</p>
+                        </div>
+                      </div>
+                    </div>
                   )}
-                </div>
-              </div>
+
+                  {/* Property Details */}
+                  {selectedHost.enquiry.propertyDetails && (
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <h3 className="font-medium text-sm text-gray-500 mb-2">
+                        Property Details
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                          <h4 className="text-xs font-medium text-gray-500">
+                            Title
+                          </h4>
+                          <p>{selectedHost.enquiry.propertyDetails.title}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-medium text-gray-500">
+                            Regular Price
+                          </h4>
+                          <p>
+                            ₹{selectedHost.enquiry.propertyDetails.regularPrice}
+                          </p>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-medium text-gray-500">
+                            Weekend Price
+                          </h4>
+                          <p>
+                            ₹{selectedHost.enquiry.propertyDetails.weekendPrice}
+                          </p>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-medium text-gray-500">
+                            Guest Limit
+                          </h4>
+                          <p>
+                            {selectedHost.enquiry.propertyDetails.guestLimit}{" "}
+                            guests
+                          </p>
+                        </div>
+                        {selectedHost.enquiry.propertyDetails.description && (
+                          <div className="col-span-2">
+                            <h4 className="text-xs font-medium text-gray-500">
+                              Description
+                            </h4>
+                            <p>
+                              {selectedHost.enquiry.propertyDetails.description}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Property Images */}
+                  {selectedHost.enquiry.propertyDetails?.photos?.length > 0 && (
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                      <h3 className="font-medium text-sm text-gray-500 mb-2">
+                        Property Images
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        {selectedHost.enquiry.propertyDetails.photos.map(
+                          (photo, index) => (
+                            <div key={index} className="relative aspect-video">
+                              <img
+                                src={`${
+                                  import.meta.env.VITE_SERVER_URL
+                                }/${photo}`}
+                                alt={`Property image ${index + 1}`}
+                                className="rounded-lg object-cover w-full h-full"
+                              />
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Amenities */}
+                  {selectedHost.enquiry.amenities?.length > 0 && (
+                    <div className="bg-teal-50 p-4 rounded-lg">
+                      <h3 className="font-medium text-sm text-gray-500 mb-2">
+                        Amenities
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedHost.enquiry.amenities.map(
+                          (amenity, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                            >
+                              {amenity}
+                            </span>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Property Rules */}
+                  {selectedHost.enquiry.propertyRules?.length > 0 && (
+                    <div className="bg-rose-50 p-4 rounded-lg">
+                      <h3 className="font-medium text-sm text-gray-500 mb-2">
+                        Property Rules
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedHost.enquiry.propertyRules.map(
+                          (rule, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm"
+                            >
+                              {rule}
+                            </span>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
         </DialogContent>
