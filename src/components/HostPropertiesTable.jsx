@@ -40,7 +40,7 @@ const HostPropertiesTable = () => {
   const fetchHostProperties = async () => {
     try {
       const response = await axiosinstance.get("/host-properties/all");
-      console.log(response.data);
+     
       setHostProperties(response.data);
     } catch (error) {
       console.error("Error fetching host properties:", error);
