@@ -20,12 +20,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { axiosinstance } from "@/axios/axios";
+import axios from "axios";
 
 const CouponsTable = () => {
   const [coupons, setCoupons] = useState([]);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isAddCouponOpen, setIsAddCouponOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
+  const [couponToDelete, setCouponToDelete] = useState(null);
   const [formData, setFormData] = useState({
     code: "",
     discount: "",
@@ -38,6 +41,30 @@ const CouponsTable = () => {
     terms: "",
     isActive: true,
   });
+  const [isLoading, setIsLoading] = useState(true);
+
+  const handleStatusToggle = async (couponId, currentStatus) => {
+    try {
+      const token = localStorage.getItem("Token");
+      const response = await axios.put(
+        `${import.meta.env.VITE_SERVER_URL}/coupons/${couponId}`,
+        { isActive: !currentStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        fetchCoupons();
+      }
+    } catch (error) {
+      console.error("Error updating coupon status:", error);
+      alert("Failed to update coupon status. Please try again.");
+    }
+  };
 
   useEffect(() => {
     fetchCoupons();
@@ -45,12 +72,16 @@ const CouponsTable = () => {
 
   const fetchCoupons = async () => {
     try {
+      setIsLoading(true);
       const response = await axiosinstance.get("/coupons");
       if (response.data.success) {
-        setCoupons(response.data.coupons);
+        setCoupons(response.data.data);
       }
     } catch (error) {
       console.error("Error fetching coupons:", error);
+      setCoupons([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -89,10 +120,21 @@ const CouponsTable = () => {
           .filter(Boolean),
       };
 
-      const response = await axiosinstance.post(
-        "/coupons/add-coupon",
-        formattedData
+      // Get token from localStorage
+      const token = localStorage.getItem("Token");
+
+      // Make POST request with authorization header
+      const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL}/coupons/create-coupon`,
+        formattedData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
+
       if (response.data.success) {
         setIsAddCouponOpen(false);
         setFormData({
@@ -107,10 +149,40 @@ const CouponsTable = () => {
           terms: "",
           isActive: true,
         });
-        fetchCoupons(); // Refresh the coupons list
+        fetchCoupons();
       }
     } catch (error) {
       console.error("Error creating coupon:", error);
+      alert("Failed to create coupon. Please try again.");
+    }
+  };
+
+  const handleDeleteClick = (coupon) => {
+    setCouponToDelete(coupon);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      const token = localStorage.getItem("Token");
+      const response = await axios.delete(
+        `${import.meta.env.VITE_SERVER_URL}/coupons/${couponToDelete._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        fetchCoupons();
+        setIsDeleteModalOpen(false);
+        setCouponToDelete(null);
+      }
+    } catch (error) {
+      console.error("Error deleting coupon:", error);
+      alert("Failed to delete coupon. Please try again.");
     }
   };
 
@@ -156,29 +228,20 @@ const CouponsTable = () => {
               <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                 Status
               </TableHead>
-              <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+              {/* <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                 Usage
-              </TableHead>
+              </TableHead> */}
               <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                 Actions
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {coupons.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan="7"
-                  className="text-center text-gray-500 py-8"
-                >
-                  No coupons found.
-                </TableCell>
-              </TableRow>
-            ) : (
+            {coupons?.length > 0 ? (
               coupons.map((coupon) => (
                 <TableRow key={coupon._id}>
                   <TableCell className="font-medium">{coupon.code}</TableCell>
-                  <TableCell>{coupon.discount}%</TableCell>
+                  <TableCell>{coupon.discountPercentage}%</TableCell>
                   <TableCell>
                     {new Date(coupon.validFrom).toLocaleDateString()}
                   </TableCell>
@@ -186,30 +249,53 @@ const CouponsTable = () => {
                     {new Date(coupon.validUntil).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        coupon.isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {coupon.isActive ? "Active" : "Inactive"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={coupon.isActive}
+                        onCheckedChange={() =>
+                          handleStatusToggle(coupon._id, coupon.isActive)
+                        }
+                      />
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          coupon.isActive
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {coupon.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
                   </TableCell>
+                  {/* <TableCell>
+                    {coupon.usageCount}/{coupon.maxUsage || "∞"}
+                  </TableCell> */}
                   <TableCell>
-                    {coupon.usageCount}/{coupon.maxUsage}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewDetails(coupon)}
-                    >
-                      View Details
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewDetails(coupon)}
+                      >
+                        View Details
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteClick(coupon)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  {isLoading ? "Loading..." : "No coupons found"}
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
@@ -276,18 +362,6 @@ const CouponsTable = () => {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="grid gap-1.5">
-                <Label htmlFor="maxUsage">Maximum Usage</Label>
-                <Input
-                  id="maxUsage"
-                  type="number"
-                  min="1"
-                  placeholder="Enter max usage"
-                  value={formData.maxUsage}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid gap-1.5">
                 <Label htmlFor="minPurchase">Minimum Purchase</Label>
                 <Input
                   id="minPurchase"
@@ -295,18 +369,6 @@ const CouponsTable = () => {
                   min="0"
                   placeholder="Enter min purchase"
                   value={formData.minPurchase}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="maxDiscount">Maximum Discount</Label>
-                <Input
-                  id="maxDiscount"
-                  type="number"
-                  min="0"
-                  placeholder="Enter max discount"
-                  value={formData.maxDiscount}
                   onChange={handleInputChange}
                   required
                 />
@@ -380,7 +442,7 @@ const CouponsTable = () => {
                   <h3 className="font-medium text-sm text-gray-500">
                     Discount
                   </h3>
-                  <p>{selectedCoupon.discount}%</p>
+                  <p>{selectedCoupon.discountPercentage}%</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">
@@ -405,7 +467,7 @@ const CouponsTable = () => {
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">Usage</h3>
                   <p>
-                    {selectedCoupon.usageCount}/{selectedCoupon.maxUsage}
+                    {selectedCoupon.usageCount}/{selectedCoupon.maxUsage || "∞"}
                   </p>
                 </div>
                 <div>
@@ -441,6 +503,35 @@ const CouponsTable = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete Coupon</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the coupon "{couponToDelete?.code}
+              "? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+            >
+              Delete
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>
