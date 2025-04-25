@@ -12,14 +12,15 @@ import { useNavigate } from "react-router-dom";
 import HostListingsTable from "./HostListingsTable";
 import HostCouponsTable from "./HostCouponsTable";
 import HostAmenitiesTable from "./HostAmenitiesTable";
-import { HostContext} from "@/context/HostContext";
+import HostReservationsTable from "./HostReservationsTable";
+import { HostContext } from "@/context/HostContext";
 import { hostAxiosInstance } from "@/axios/axios";
 import AddPropertyModal from "./AddPropertyModal";
 import { useToast } from "../components/ui/use-toast";
 
 const HostDashboard = () => {
   const navigate = useNavigate();
-  const {Host,setHost}= useContext(HostContext)
+  const { Host, setHost } = useContext(HostContext);
   const { toast } = useToast();
   const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Listings");
@@ -28,9 +29,8 @@ const HostDashboard = () => {
   useEffect(() => {
     const fetchHost = async () => {
       try {
-        
         const response = await hostAxiosInstance.get("/hosts/profile");
-        
+
         if (response.data.success) {
           setHost(response.data.data);
         } else {
@@ -53,9 +53,9 @@ const HostDashboard = () => {
       }
     };
     const token = localStorage.getItem("HostToken");
-if(!token){
-  navigate("/host-login")
-}
+    if (!token) {
+      navigate("/host-login");
+    }
     fetchHost();
   }, [navigate, setHost, toast]);
 
@@ -84,6 +84,8 @@ if(!token){
         return <HostAmenitiesTable />;
       case "Coupons":
         return <HostCouponsTable />;
+      case "Reservations":
+        return <HostReservationsTable />;
       default:
         return (
           <HostListingsTable onAddProperty={() => setIsAddPropertyOpen(true)} />
@@ -181,6 +183,16 @@ if(!token){
             }`}
           >
             Coupons
+          </button>
+          <button
+            onClick={() => setActiveTab("Reservations")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "Reservations"
+                ? "bg-[#0f172a] text-white"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            Reservations
           </button>
         </div>
 
