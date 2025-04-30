@@ -19,6 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const ReservationsTable = () => {
   const [reservations, setReservations] = useState([]);
@@ -26,6 +32,8 @@ const ReservationsTable = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState(null);
 
   useEffect(() => {
     fetchReservations();
@@ -132,6 +140,11 @@ const ReservationsTable = () => {
     return format(new Date(dateString), "MMM dd, yyyy");
   };
 
+  const handleViewDetails = (reservation) => {
+    setSelectedReservation(reservation);
+    setIsDetailsOpen(true);
+  };
+
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
@@ -191,13 +204,16 @@ const ReservationsTable = () => {
               <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                 Total Price
               </TableHead>
+              <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                More
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan="7"
+                  colSpan="8"
                   className="text-center text-gray-500 py-8"
                 >
                   Loading...
@@ -206,7 +222,7 @@ const ReservationsTable = () => {
             ) : filteredReservations.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan="7"
+                  colSpan="8"
                   className="text-center text-gray-500 py-8"
                 >
                   No reservations found.
@@ -239,12 +255,137 @@ const ReservationsTable = () => {
                   <TableCell>
                     ₹{reservation.totalPrice.toLocaleString()}
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewDetails(reservation)}
+                    >
+                      View Details
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+
+      {/* Details Modal */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Reservation Details</DialogTitle>
+          </DialogHeader>
+          {selectedReservation && (
+            <div className="grid gap-4 py-4">
+              {/* Property Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-medium text-sm text-gray-500 mb-2">
+                  Property Details
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">Title</h4>
+                    <p>{selectedReservation.propertyDetails.title}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Guest Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-medium text-sm text-gray-500 mb-2">
+                  Guest Details
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">Name</h4>
+                    <p>{selectedReservation.userDetails.name}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">Email</h4>
+                    <p>{selectedReservation.userDetails.email}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">Phone</h4>
+                    <p>{selectedReservation.userDetails.mobileNumber}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Number of Guests
+                    </h4>
+                    <p>{selectedReservation.numberOfGuests}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Booking Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-medium text-sm text-gray-500 mb-2">
+                  Booking Details
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Check In
+                    </h4>
+                    <p>{formatDate(selectedReservation.bookingDate.checkIn)}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Check Out
+                    </h4>
+                    <p>
+                      {formatDate(selectedReservation.bookingDate.checkOut)}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Status
+                    </h4>
+                    <p>{getStatusBadge(selectedReservation.status)}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Total Price
+                    </h4>
+                    <p>₹{selectedReservation.totalPrice.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-medium text-sm text-gray-500 mb-2">
+                  Payment Details
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Payment Status
+                    </h4>
+                    <p>
+                      {getPaymentStatusBadge(selectedReservation.paymentStatus)}
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Payment ID
+                    </h4>
+                    <p>{selectedReservation.paymentDetails.paymentId}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500">
+                      Order ID
+                    </h4>
+                    <p>{selectedReservation.paymentDetails.orderId}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
