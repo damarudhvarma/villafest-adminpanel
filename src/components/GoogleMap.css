@@ -1,0 +1,119 @@
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-box-container {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 300px;
+  z-index: 1000;
+}
+
+.search-input {
+  width: 100%;
+  height: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  color: #1a202c;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.search-input::placeholder {
+  color: #a0aec0;
+}
+
+/* Ensure the Places Autocomplete dropdown appears above the modal */
+.pac-container {
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+}
+
+/* Prevent click-through on the dropdown */
+.pac-container:after {
+  display: none !important;
+}
+
+/* Style the dropdown items */
+.pac-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pac-item:hover {
+  background-color: #f7fafc;
+}
+
+.pac-item-query {
+  font-size: 14px;
+  color: #1a202c;
+}
+
+.pac-matched {
+  font-weight: 600;
+}
+
+.custom-marker {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.custom-marker:hover {
+  transform: scale(1.1);
+}
+
+.map-loading,
+.map-error {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.9);
+  z-index: 1000;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3182ce;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.map-error p {
+  color: #e53e3e;
+  font-size: 14px;
+  text-align: center;
+  padding: 0 16px;
+}

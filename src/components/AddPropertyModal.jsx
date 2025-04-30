@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { axiosinstance } from "@/axios/axios";
+import MapComponent from "./GoogleMap";
 
 const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
@@ -48,22 +49,63 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
     mainImage: null,
     additionalImages: [],
   });
+  const [isLocationSearching, setIsLocationSearching] = useState(false);
+  const [locationSearchError, setLocationSearchError] = useState("");
+  const locationSearchRef = useRef(null);
+  const [autocomplete, setAutocomplete] = useState(null);
 
   useEffect(() => {
-    if (
-      !window.google &&
-      !document.querySelector('script[src*="maps.googleapis.com"]')
-    ) {
+    const loadGoogleMaps = () => {
+      // Check if Google Maps is already loaded
+      if (window.google && window.google.maps) {
+        setIsMapLoaded(true);
+        return;
+      }
+
+      // Check if script is already being loaded
+      const existingScript = document.querySelector(
+        'script[src*="maps.googleapis.com"]'
+      );
+      if (existingScript) {
+        // If script exists but hasn't loaded yet, wait for it
+        if (!window.google) {
+          existingScript.onload = () => setIsMapLoaded(true);
+        }
+        return;
+      }
+
+      // Create script element with proper loading attributes
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=${
         import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-      }&libraries=places,marker,geocoding`;
+      }&libraries=places&loading=async`;
       script.async = true;
-      script.onload = () => setIsMapLoaded(true);
+      script.defer = true;
+      script.onload = () => {
+        setIsMapLoaded(true);
+      };
+      script.onerror = () => {
+        console.error("Failed to load Google Maps script");
+        setIsMapLoaded(false);
+      };
       document.head.appendChild(script);
-    } else if (window.google) {
+    };
+
+    // Only load if not already loaded
+    if (!window.google || !window.google.maps) {
+      loadGoogleMaps();
+    } else {
       setIsMapLoaded(true);
     }
+
+    // Cleanup function
+    return () => {
+      // Don't remove the script during cleanup as it might be needed by other components
+      // const script = document.querySelector('script[src*="maps.googleapis.com"]');
+      // if (script) {
+      //   script.remove();
+      // }
+    };
   }, []);
 
   useEffect(() => {
@@ -249,6 +291,82 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
     updateAddressFromCoordinates,
   ]);
 
+  useEffect(() => {
+    if (window.google && locationSearchRef.current && !autocomplete) {
+      const newAutocomplete = new window.google.maps.places.Autocomplete(
+        locationSearchRef.current,
+        {
+          types: ["geocode", "establishment"],
+          fields: [
+            "formatted_address",
+            "geometry",
+            "name",
+            "address_components",
+          ],
+        }
+      );
+
+      if (mapRef.current) {
+        newAutocomplete.bindTo("bounds", mapRef.current);
+      }
+
+      newAutocomplete.addListener("place_changed", () => {
+        setIsLocationSearching(false);
+        const place = newAutocomplete.getPlace();
+
+        if (!place.geometry?.location) {
+          setLocationSearchError("No location data found for this place");
+          return;
+        }
+
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+
+        setFormData((prev) => ({
+          ...prev,
+          latitude: lat.toString(),
+          longitude: lng.toString(),
+        }));
+
+        let streetNumber = "";
+        let route = "";
+        let city = "";
+        let state = "";
+        let postalCode = "";
+
+        place.address_components?.forEach((component) => {
+          const types = component.types;
+          if (types.includes("street_number"))
+            streetNumber = component.long_name;
+          if (types.includes("route")) route = component.long_name;
+          if (types.includes("locality")) city = component.long_name;
+          if (types.includes("administrative_area_level_1"))
+            state = component.long_name;
+          if (types.includes("postal_code")) postalCode = component.long_name;
+        });
+
+        setFormData((prev) => ({
+          ...prev,
+          address: streetNumber
+            ? `${streetNumber} ${route}`
+            : route || place.name || place.formatted_address,
+          city,
+          state,
+          postalCode,
+        }));
+
+        if (mapRef.current) {
+          const newPosition = { lat, lng };
+          mapRef.current.setCenter(newPosition);
+          mapRef.current.setZoom(17);
+          createMarker(mapRef.current, newPosition);
+        }
+      });
+
+      setAutocomplete(newAutocomplete);
+    }
+  }, [window.google, mapRef.current, autocomplete]);
+
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({
@@ -361,8 +479,56 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
     }
   };
 
+  const handleLocationSelect = useCallback((location) => {
+    if (!window.google) return;
+
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ location }, (results, status) => {
+      if (status === "OK" && results[0]) {
+        const place = results[0];
+        let streetNumber = "";
+        let route = "";
+        let city = "";
+        let state = "";
+        let postalCode = "";
+
+        place.address_components.forEach((component) => {
+          const types = component.types;
+          if (types.includes("street_number"))
+            streetNumber = component.long_name;
+          if (types.includes("route")) route = component.long_name;
+          if (types.includes("locality")) city = component.long_name;
+          if (types.includes("administrative_area_level_1"))
+            state = component.long_name;
+          if (types.includes("postal_code")) postalCode = component.long_name;
+        });
+
+        setFormData((prev) => ({
+          ...prev,
+          latitude: location.lat.toString(),
+          longitude: location.lng.toString(),
+          address: streetNumber
+            ? `${streetNumber} ${route}`
+            : route || place.formatted_address,
+          city,
+          state,
+          postalCode,
+        }));
+      }
+    });
+  }, []);
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        // Don't close the modal if a place is being selected
+        if (!open && document.querySelector(".pac-container")) {
+          return;
+        }
+        onClose();
+      }}
+    >
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Property</DialogTitle>
@@ -569,120 +735,17 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
             <Label>Location</Label>
             <div className="grid gap-3">
               <div className="grid gap-1.5">
-                <Label htmlFor="locationSearch">Search Location</Label>
-                <div className="relative">
-                  <Input
-                    id="locationSearch"
-                    type="text"
-                    placeholder="Type to search for a location..."
-                    className="h-8"
-                    onFocus={(e) => {
-                      if (!window.google) return;
-
-                      const autocomplete =
-                        new window.google.maps.places.Autocomplete(e.target, {
-                          types: ["geocode", "establishment"],
-                          fields: [
-                            "formatted_address",
-                            "geometry",
-                            "name",
-                            "address_components",
-                          ],
-                        });
-
-                      if (mapRef.current) {
-                        autocomplete.bindTo("bounds", mapRef.current);
-                      }
-
-                      autocomplete.addListener("place_changed", () => {
-                        const place = autocomplete.getPlace();
-
-                        if (!place.geometry?.location) {
-                          console.error("No location data for this place");
-                          return;
+                <MapComponent
+                  onLocationSelect={handleLocationSelect}
+                  initialLocation={
+                    formData.latitude && formData.longitude
+                      ? {
+                          lat: parseFloat(formData.latitude),
+                          lng: parseFloat(formData.longitude),
                         }
-
-                        const lat = place.geometry.location.lat();
-                        const lng = place.geometry.location.lng();
-
-                        setFormData((prev) => ({
-                          ...prev,
-                          latitude: lat.toString(),
-                          longitude: lng.toString(),
-                        }));
-
-                        let streetNumber = "";
-                        let route = "";
-                        let city = "";
-                        let state = "";
-                        let postalCode = "";
-
-                        place.address_components?.forEach((component) => {
-                          const types = component.types;
-                          if (types.includes("street_number"))
-                            streetNumber = component.long_name;
-                          if (types.includes("route"))
-                            route = component.long_name;
-                          if (types.includes("locality"))
-                            city = component.long_name;
-                          if (types.includes("administrative_area_level_1"))
-                            state = component.long_name;
-                          if (types.includes("postal_code"))
-                            postalCode = component.long_name;
-                        });
-
-                        setFormData((prev) => ({
-                          ...prev,
-                          address: streetNumber
-                            ? `${streetNumber} ${route}`
-                            : route || place.name || place.formatted_address,
-                          city,
-                          state,
-                          postalCode,
-                        }));
-
-                        if (mapRef.current) {
-                          const newPosition = { lat, lng };
-                          mapRef.current.setCenter(newPosition);
-                          mapRef.current.setZoom(17);
-
-                          if (markerRef.current) {
-                            markerRef.current.setMap(null);
-                          }
-
-                          const marker = new window.google.maps.Marker({
-                            position: newPosition,
-                            map: mapRef.current,
-                            title: "Selected Location",
-                            animation: window.google.maps.Animation.DROP,
-                          });
-
-                          markerRef.current = marker;
-                          mapRef.current.panTo(newPosition);
-                        }
-                      });
-                    }}
-                  />
-                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                    <svg
-                      className="h-4 w-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500">
-                  Search for a location and select from the suggestions to
-                  automatically update the map and coordinates
-                </p>
+                      : null
+                  }
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="grid gap-1.5">
@@ -712,71 +775,53 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
                   />
                 </div>
               </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                placeholder="Enter street address"
-                className="h-8"
-                value={formData.address}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-3">
               <div className="grid gap-1.5">
-                <Label htmlFor="city">City</Label>
+                <Label htmlFor="address">Address</Label>
                 <Input
-                  id="city"
-                  placeholder="Enter city"
+                  id="address"
+                  placeholder="Enter street address"
                   className="h-8"
-                  value={formData.city}
+                  value={formData.address}
                   onChange={handleInputChange}
                   required
                 />
               </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  placeholder="Enter state"
-                  className="h-8"
-                  value={formData.state}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="postalCode">Postal Code</Label>
-                <Input
-                  id="postalCode"
-                  placeholder="Enter postal code"
-                  className="h-8"
-                  value={formData.postalCode}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label>Map Preview</Label>
-            <div
-              id="map"
-              className="w-full h-[250px] bg-gray-100 rounded-md"
-              style={{ border: "1px solid #e2e8f0" }}
-            >
-              {!isMapLoaded && (
-                <div className="w-full h-full flex items-center justify-center">
-                  <p className="text-gray-500">Loading map...</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    placeholder="Enter city"
+                    className="h-8"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    required
+                  />
                 </div>
-              )}
+                <div className="grid gap-1.5">
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    placeholder="Enter state"
+                    className="h-8"
+                    value={formData.state}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Input
+                    id="postalCode"
+                    placeholder="Enter postal code"
+                    className="h-8"
+                    value={formData.postalCode}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-gray-500 mt-1">
-              Click on the map to set the property location
-            </p>
           </div>
 
           <div className="grid gap-1.5">
