@@ -230,7 +230,6 @@ const CategoriesTable = () => {
               <tr className="border-b">
                 <th className="text-left p-4">Image</th>
                 <th className="text-left p-4">Name</th>
-                <th className="text-left p-4">Properties</th>
                 <th className="text-left p-4">Status</th>
                 <th className="text-left p-4">Actions</th>
               </tr>
@@ -238,19 +237,19 @@ const CategoriesTable = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="p-4 text-center">
+                  <td colSpan="4" className="p-4 text-center">
                     Loading...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan="5" className="p-4 text-center text-red-500">
+                  <td colSpan="4" className="p-4 text-center text-red-500">
                     {error}
                   </td>
                 </tr>
               ) : categories.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="p-4 text-center">
+                  <td colSpan="4" className="p-4 text-center">
                     No categories found
                   </td>
                 </tr>
@@ -267,7 +266,6 @@ const CategoriesTable = () => {
                       />
                     </td>
                     <td className="p-4">{category.name}</td>
-                    <td className="p-4">{category.properties}</td>
                     <td className="p-4">
                       <span
                         className={`px-2 py-1 rounded-full text-sm ${
