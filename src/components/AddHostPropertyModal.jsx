@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { hostAxiosInstance } from "@/axios/axios";
 import { useToast } from "./ui/use-toast";
+import MapComponent from "./GoogleMap";
 
 const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
   const { toast } = useToast();
@@ -306,6 +307,45 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
     }));
   };
 
+  const handleLocationSelect = useCallback((location) => {
+    if (!window.google) return;
+
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ location }, (results, status) => {
+      if (status === "OK" && results[0]) {
+        const place = results[0];
+        let streetNumber = "";
+        let route = "";
+        let city = "";
+        let state = "";
+        let postalCode = "";
+
+        place.address_components.forEach((component) => {
+          const types = component.types;
+          if (types.includes("street_number"))
+            streetNumber = component.long_name;
+          if (types.includes("route")) route = component.long_name;
+          if (types.includes("locality")) city = component.long_name;
+          if (types.includes("administrative_area_level_1"))
+            state = component.long_name;
+          if (types.includes("postal_code")) postalCode = component.long_name;
+        });
+
+        setFormData((prev) => ({
+          ...prev,
+          latitude: location.lat.toString(),
+          longitude: location.lng.toString(),
+          address: streetNumber
+            ? `${streetNumber} ${route}`
+            : route || place.formatted_address,
+          city,
+          state,
+          postalCode,
+        }));
+      }
+    });
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -434,8 +474,32 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        // Check if we're in the process of selecting a place
+        const isSelectingPlace =
+          document.querySelector(".pac-container")?.style.display !== "none" ||
+          document.activeElement?.classList.contains("search-input");
+
+        if (!open && isSelectingPlace) {
+          return;
+        }
+        onClose();
+      }}
+    >
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => {
+          // Prevent closing when clicking on the search suggestions
+          if (
+            e.target.closest(".pac-container") ||
+            e.target.closest(".search-input")
+          ) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Add New Property</DialogTitle>
           <DialogDescription>
@@ -608,191 +672,90 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
           {/* Location */}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="locationSearch">Search Location</Label>
-              <div className="relative">
-                <Input
-                  id="locationSearch"
-                  type="text"
-                  placeholder="Type to search for a location..."
-                  onFocus={(e) => {
-                    if (!window.google) return;
-
-                    const autocomplete =
-                      new window.google.maps.places.Autocomplete(e.target, {
-                        types: ["geocode", "establishment"],
-                        fields: [
-                          "formatted_address",
-                          "geometry",
-                          "name",
-                          "address_components",
-                        ],
-                      });
-
-                    if (mapRef.current) {
-                      autocomplete.bindTo("bounds", mapRef.current);
+              <Label>Location</Label>
+              <div className="grid gap-3">
+                <div className="grid gap-1.5">
+                  <MapComponent
+                    onLocationSelect={handleLocationSelect}
+                    initialLocation={
+                      formData.latitude && formData.longitude
+                        ? {
+                            lat: parseFloat(formData.latitude),
+                            lng: parseFloat(formData.longitude),
+                          }
+                        : null
                     }
-
-                    autocomplete.addListener("place_changed", () => {
-                      const place = autocomplete.getPlace();
-
-                      if (!place.geometry?.location) {
-                        console.error("No location data for this place");
-                        return;
-                      }
-
-                      const lat = place.geometry.location.lat();
-                      const lng = place.geometry.location.lng();
-
-                      setFormData((prev) => ({
-                        ...prev,
-                        latitude: lat.toString(),
-                        longitude: lng.toString(),
-                      }));
-
-                      let streetNumber = "";
-                      let route = "";
-                      let city = "";
-                      let state = "";
-                      let postalCode = "";
-
-                      place.address_components?.forEach((component) => {
-                        const types = component.types;
-                        if (types.includes("street_number"))
-                          streetNumber = component.long_name;
-                        if (types.includes("route"))
-                          route = component.long_name;
-                        if (types.includes("locality"))
-                          city = component.long_name;
-                        if (types.includes("administrative_area_level_1"))
-                          state = component.long_name;
-                        if (types.includes("postal_code"))
-                          postalCode = component.long_name;
-                      });
-
-                      setFormData((prev) => ({
-                        ...prev,
-                        address: streetNumber
-                          ? `${streetNumber} ${route}`
-                          : route || place.name || place.formatted_address,
-                        city,
-                        state,
-                        postalCode,
-                      }));
-
-                      if (mapRef.current) {
-                        const newPosition = { lat, lng };
-                        mapRef.current.setCenter(newPosition);
-                        mapRef.current.setZoom(17);
-                        createMarker(mapRef.current, newPosition);
-                      }
-                    });
-                  }}
-                />
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                  <svg
-                    className="h-4 w-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="latitude">Latitude</Label>
+                    <Input
+                      id="latitude"
+                      name="latitude"
+                      type="number"
+                      step="any"
+                      value={formData.latitude}
+                      onChange={handleInputChange}
+                      required
                     />
-                  </svg>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="longitude">Longitude</Label>
+                    <Input
+                      id="longitude"
+                      name="longitude"
+                      type="number"
+                      step="any"
+                      value={formData.longitude}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      name="state"
+                      value={formData.state}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="postalCode">Postal Code</Label>
+                    <Input
+                      id="postalCode"
+                      name="postalCode"
+                      value={formData.postalCode}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="latitude">Latitude</Label>
-                <Input
-                  id="latitude"
-                  name="latitude"
-                  type="number"
-                  step="any"
-                  value={formData.latitude}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="longitude">Longitude</Label>
-                <Input
-                  id="longitude"
-                  name="longitude"
-                  type="number"
-                  step="any"
-                  value={formData.longitude}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="postalCode">Postal Code</Label>
-                <Input
-                  id="postalCode"
-                  name="postalCode"
-                  value={formData.postalCode}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label>Map Preview</Label>
-              <div
-                id="map"
-                className="w-full h-[250px] bg-gray-100 rounded-md"
-                style={{ border: "1px solid #e2e8f0" }}
-              >
-                {!isMapLoaded && (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <p className="text-gray-500">Loading map...</p>
-                  </div>
-                )}
-              </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Click on the map to set the property location
-              </p>
             </div>
           </div>
 
