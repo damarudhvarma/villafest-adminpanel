@@ -19,7 +19,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { axiosinstance } from "@/axios/axios";
+import { axiosinstance, hostAxiosInstance } from "@/axios/axios";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const HostCouponsTable = () => {
   const [coupons, setCoupons] = useState([]);
@@ -28,29 +35,54 @@ const HostCouponsTable = () => {
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [hostProperties, setHostProperties] = useState([]);
   const [formData, setFormData] = useState({
     code: "",
     discount: "",
     validFrom: "",
     validUntil: "",
-    maxUsage: "",
-    minPurchase: "",
-    maxDiscount: "",
     description: "",
-    terms: "",
     isActive: true,
+    propertyId: "",
   });
 
   useEffect(() => {
     fetchCoupons();
   }, []);
 
+  useEffect(() => {
+    if (isAddCouponOpen) {
+      fetchHostProperties();
+    }
+  }, [isAddCouponOpen]);
+
+  const fetchHostProperties = async () => {
+    try {
+      const response = await hostAxiosInstance.get(
+        "/host-properties/get-host-property-by-id"
+      );
+
+      if (response.data.success && response.data.data) {
+        // Since we get a single property, store it as an array with one item
+        setHostProperties([response.data.data]);
+        // Set the property ID as default since there's only one property
+        setFormData((prev) => ({
+          ...prev,
+          propertyId: response.data.data._id,
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching host properties:", error);
+    }
+  };
+
   const fetchCoupons = async () => {
     try {
       setIsLoading(true);
-      const response = await axiosinstance.get("/hosts/coupons");
+      const response = await hostAxiosInstance.get("/host-coupons/get-coupons");
+      console.log("Coupons response:", response.data);
       if (response.data.success) {
-        setCoupons(response.data.coupons);
+        setCoupons(response.data.data);
       }
     } catch (error) {
       console.error("Error fetching coupons:", error);
@@ -66,9 +98,27 @@ const HostCouponsTable = () => {
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
+
+    // Special handling for coupon code to ensure uppercase and alphanumeric
+    if (id === "code") {
+      // Convert to uppercase and remove any non-alphanumeric characters
+      const formattedValue = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      setFormData((prev) => ({
+        ...prev,
+        [id]: formattedValue,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [id]: value,
+      }));
+    }
+  };
+
+  const handlePropertyChange = (value) => {
     setFormData((prev) => ({
       ...prev,
-      [id]: value,
+      propertyId: value,
     }));
   };
 
@@ -81,20 +131,24 @@ const HostCouponsTable = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate coupon code format
+    if (!/^[A-Z0-9]+$/.test(formData.code)) {
+      alert("Coupon code must contain only uppercase letters and numbers");
+      return;
+    }
+
     try {
       const formattedData = {
         ...formData,
         discount: Number(formData.discount),
-        maxUsage: Number(formData.maxUsage),
-        minPurchase: Number(formData.minPurchase),
-        maxDiscount: Number(formData.maxDiscount),
-        terms: formData.terms
-          .split(",")
-          .map((term) => term.trim())
-          .filter(Boolean),
+        propertyId: formData.propertyId,
       };
 
-      const response = await axiosinstance.post("/host/coupons", formattedData);
+      const response = await hostAxiosInstance.post(
+        "/host-coupons/create-coupon",
+        formattedData
+      );
       if (response.data.success) {
         setIsAddCouponOpen(false);
         setFormData({
@@ -102,18 +156,23 @@ const HostCouponsTable = () => {
           discount: "",
           validFrom: "",
           validUntil: "",
-          maxUsage: "",
-          minPurchase: "",
-          maxDiscount: "",
           description: "",
-          terms: "",
           isActive: true,
+          propertyId: formData.propertyId,
         });
         fetchCoupons();
       }
     } catch (error) {
       console.error("Error creating coupon:", error);
     }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear().toString().slice(-2);
+    return `${day}/${month}/${year}`;
   };
 
   const filteredCoupons = coupons.filter(
@@ -166,9 +225,7 @@ const HostCouponsTable = () => {
               <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                 Status
               </TableHead>
-              <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                Usage
-              </TableHead>
+
               <TableHead className="text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                 Actions
               </TableHead>
@@ -197,13 +254,9 @@ const HostCouponsTable = () => {
               filteredCoupons.map((coupon) => (
                 <TableRow key={coupon._id}>
                   <TableCell className="font-medium">{coupon.code}</TableCell>
-                  <TableCell>{coupon.discount}%</TableCell>
-                  <TableCell>
-                    {new Date(coupon.validFrom).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(coupon.validUntil).toLocaleDateString()}
-                  </TableCell>
+                  <TableCell>{coupon.discountPercentage}%</TableCell>
+                  <TableCell>{formatDate(coupon.validFrom)}</TableCell>
+                  <TableCell>{formatDate(coupon.validUntil)}</TableCell>
                   <TableCell>
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
@@ -215,9 +268,7 @@ const HostCouponsTable = () => {
                       {coupon.isActive ? "Active" : "Inactive"}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    {coupon.usageCount}/{coupon.maxUsage}
-                  </TableCell>
+
                   <TableCell>
                     <Button
                       variant="outline"
@@ -249,9 +300,11 @@ const HostCouponsTable = () => {
                 <Label htmlFor="code">Coupon Code</Label>
                 <Input
                   id="code"
-                  placeholder="Enter coupon code"
+                  placeholder="Enter coupon code (uppercase letters and numbers only)"
                   value={formData.code}
                   onChange={handleInputChange}
+                  pattern="[A-Z0-9]+"
+                  title="Only uppercase letters and numbers are allowed"
                   required
                 />
               </div>
@@ -269,6 +322,16 @@ const HostCouponsTable = () => {
                 />
               </div>
             </div>
+
+            {/* Show the property name since there's only one property */}
+            {hostProperties.length > 0 && (
+              <div className="grid gap-1.5">
+                <Label>Property</Label>
+                <div className="p-2 bg-gray-50 rounded-md">
+                  {hostProperties[0].title}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-1.5">
@@ -293,62 +356,12 @@ const HostCouponsTable = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="grid gap-1.5">
-                <Label htmlFor="maxUsage">Maximum Usage</Label>
-                <Input
-                  id="maxUsage"
-                  type="number"
-                  min="1"
-                  placeholder="Enter max usage"
-                  value={formData.maxUsage}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="minPurchase">Minimum Purchase</Label>
-                <Input
-                  id="minPurchase"
-                  type="number"
-                  min="0"
-                  placeholder="Enter min purchase"
-                  value={formData.minPurchase}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="maxDiscount">Maximum Discount</Label>
-                <Input
-                  id="maxDiscount"
-                  type="number"
-                  min="0"
-                  placeholder="Enter max discount"
-                  value={formData.maxDiscount}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-            </div>
-
             <div className="grid gap-1.5">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 placeholder="Enter coupon description"
                 value={formData.description}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="terms">Terms & Conditions</Label>
-              <Textarea
-                id="terms"
-                placeholder="Enter terms & conditions separated by commas"
-                value={formData.terms}
                 onChange={handleInputChange}
                 required
               />
@@ -405,17 +418,13 @@ const HostCouponsTable = () => {
                   <h3 className="font-medium text-sm text-gray-500">
                     Valid From
                   </h3>
-                  <p>
-                    {new Date(selectedCoupon.validFrom).toLocaleDateString()}
-                  </p>
+                  <p>{formatDate(selectedCoupon.validFrom)}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">
                     Valid Until
                   </h3>
-                  <p>
-                    {new Date(selectedCoupon.validUntil).toLocaleDateString()}
-                  </p>
+                  <p>{formatDate(selectedCoupon.validUntil)}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-gray-500">Status</h3>
@@ -427,18 +436,6 @@ const HostCouponsTable = () => {
                     {selectedCoupon.usageCount}/{selectedCoupon.maxUsage}
                   </p>
                 </div>
-                <div>
-                  <h3 className="font-medium text-sm text-gray-500">
-                    Min Purchase
-                  </h3>
-                  <p>₹{selectedCoupon.minPurchase}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-gray-500">
-                    Max Discount
-                  </h3>
-                  <p>₹{selectedCoupon.maxDiscount}</p>
-                </div>
               </div>
 
               <div>
@@ -446,17 +443,6 @@ const HostCouponsTable = () => {
                   Description
                 </h3>
                 <p className="mt-1">{selectedCoupon.description}</p>
-              </div>
-
-              <div>
-                <h3 className="font-medium text-sm text-gray-500">
-                  Terms & Conditions
-                </h3>
-                <ul className="mt-1 list-disc list-inside">
-                  {selectedCoupon.terms.map((term, index) => (
-                    <li key={index}>{term}</li>
-                  ))}
-                </ul>
               </div>
             </div>
           )}
