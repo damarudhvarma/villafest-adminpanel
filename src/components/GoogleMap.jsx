@@ -140,7 +140,10 @@ const MapComponent = ({
       }
 
       // Prevent the modal from closing
-      const event = new Event("placeSelected", { bubbles: true });
+      const event = new CustomEvent("placeSelected", {
+        bubbles: true,
+        detail: { place },
+      });
       document.dispatchEvent(event);
     }
   }, [searchBox, onLocationSelect, isViewOnly]);
@@ -161,12 +164,13 @@ const MapComponent = ({
     // Add event listener to prevent modal closing when selecting a place
     const handlePlaceSelected = (e) => {
       e.stopPropagation();
+      e.preventDefault();
     };
 
-    document.addEventListener("placeSelected", handlePlaceSelected);
+    document.addEventListener("placeSelected", handlePlaceSelected, true);
 
     return () => {
-      document.removeEventListener("placeSelected", handlePlaceSelected);
+      document.removeEventListener("placeSelected", handlePlaceSelected, true);
     };
   }, []);
 
@@ -218,14 +222,7 @@ const MapComponent = ({
     const pinElement = document.createElement("div");
     pinElement.className = "custom-marker";
     pinElement.innerHTML = `
-      <div style="
-        background-color: #FF385C;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        border: 2px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      "></div>
+      <div class="marker-pin"></div>
     `;
 
     const newMarker = new AdvancedMarkerElement({
@@ -325,6 +322,14 @@ const MapComponent = ({
                   e.preventDefault();
                   e.stopPropagation();
                 }
+              }}
+              onBlur={(e) => {
+                // Add a small delay to allow place selection to complete
+                setTimeout(() => {
+                  if (!e.relatedTarget?.closest(".pac-container")) {
+                    e.stopPropagation();
+                  }
+                }, 100);
               }}
             />
           </StandaloneSearchBox>

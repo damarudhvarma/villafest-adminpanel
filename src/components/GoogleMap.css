@@ -68,13 +68,47 @@
   font-weight: 600;
 }
 
+/* Red Marker Styles */
 .custom-marker {
+  position: relative;
+  width: 30px;
+  height: 30px;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transform: translate(-50%, -100%);
 }
 
-.custom-marker:hover {
-  transform: scale(1.1);
+.marker-pin {
+  width: 30px;
+  height: 30px;
+  border-radius: 50% 50% 50% 0;
+  background: #ff385c;
+  position: absolute;
+  transform: rotate(-45deg);
+  left: 50%;
+  top: 50%;
+  margin: -15px 0 0 -15px;
+  animation: marker-drop 0.3s ease-out;
+}
+
+.marker-pin::after {
+  content: "";
+  width: 24px;
+  height: 24px;
+  margin: 3px 0 0 3px;
+  background: white;
+  position: absolute;
+  border-radius: 50%;
+}
+
+@keyframes marker-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) rotate(-45deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(-45deg);
+  }
 }
 
 .map-loading,

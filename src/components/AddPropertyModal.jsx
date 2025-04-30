@@ -522,14 +522,29 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        // Don't close the modal if a place is being selected
-        if (!open && document.querySelector(".pac-container")) {
+        // Check if we're in the process of selecting a place
+        const isSelectingPlace =
+          document.querySelector(".pac-container")?.style.display !== "none" ||
+          document.activeElement?.classList.contains("search-input");
+
+        if (!open && isSelectingPlace) {
           return;
         }
         onClose();
       }}
     >
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => {
+          // Prevent closing when clicking on the search suggestions
+          if (
+            e.target.closest(".pac-container") ||
+            e.target.closest(".search-input")
+          ) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Add New Property</DialogTitle>
           <DialogDescription>
