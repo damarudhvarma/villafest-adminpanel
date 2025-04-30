@@ -118,7 +118,7 @@ const Login = () => {
           </div>
         </div>
         <div className="text-white/80 text-sm">
-          © 2024 VillaFest. All rights reserved.
+          © {new Date().getFullYear()} VillaFest. All rights reserved.
         </div>
       </div>
 
