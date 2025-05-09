@@ -14,10 +14,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { hostAxiosInstance } from "@/axios/axios";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -25,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
 
 const HostReservationsTable = () => {
   const [reservations, setReservations] = useState([]);
@@ -34,11 +37,22 @@ const HostReservationsTable = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [hostProperties, setHostProperties] = useState([]);
+  const [selectedProperty, setSelectedProperty] = useState("");
+  const [selectedDates, setSelectedDates] = useState([]);
+  const [blockingLoading, setBlockingLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchReservations();
   }, []);
+
+  useEffect(() => {
+    if (isBlockModalOpen) {
+      fetchHostProperties();
+    }
+  }, [isBlockModalOpen]);
 
   useEffect(() => {
     filterReservations();
@@ -66,6 +80,83 @@ const HostReservationsTable = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchHostProperties = async () => {
+    try {
+      const token = localStorage.getItem("HostToken");
+      const response = await hostAxiosInstance.get(
+        "/host-properties/get-host-property",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        setHostProperties(response.data.data);
+        // Set default property if available
+        if (response.data.data.length > 0) {
+          setSelectedProperty(response.data.data[0]._id);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching host properties:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch properties. Please try again.",
+      });
+    }
+  };
+
+  const handleBlockReservations = async () => {
+    if (!selectedProperty || selectedDates.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a property and dates to block",
+      });
+      return;
+    }
+
+    try {
+      setBlockingLoading(true);
+      const token = localStorage.getItem("HostToken");
+      const response = await hostAxiosInstance.post(
+        `/host-properties/${selectedProperty}/block-dates`,
+        {
+          blockedDates: selectedDates,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        toast({
+          title: "Success",
+          description: "Dates blocked successfully",
+        });
+        setIsBlockModalOpen(false);
+        fetchReservations();
+        // Reset selections
+        setSelectedDates([]);
+        setSelectedProperty("");
+      }
+    } catch (error) {
+      console.error("Error blocking dates:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.response?.data?.message || "Failed to block dates",
+      });
+    } finally {
+      setBlockingLoading(false);
     }
   };
 
@@ -154,24 +245,32 @@ const HostReservationsTable = () => {
   return (
     <>
       {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <Input
-          type="text"
-          placeholder="Search by property or guest..."
-          className="w-full sm:max-w-md border-gray-300"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Reservations</SelectItem>
-            <SelectItem value="active">Active Reservations</SelectItem>
-            <SelectItem value="cancelled">Cancelled Reservations</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Input
+            type="text"
+            placeholder="Search by property or guest..."
+            className="w-full sm:max-w-md border-gray-300"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Reservations</SelectItem>
+              <SelectItem value="active">Active Reservations</SelectItem>
+              <SelectItem value="cancelled">Cancelled Reservations</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          className="bg-red-500 hover:bg-red-600"
+          onClick={() => setIsBlockModalOpen(true)}
+        >
+          Block Reservations
+        </Button>
       </div>
 
       {/* Table */}
@@ -226,7 +325,15 @@ const HostReservationsTable = () => {
               </TableRow>
             ) : (
               filteredReservations.map((reservation) => (
-                <TableRow key={reservation.id}>
+                <TableRow
+                  key={reservation.id}
+                  className={
+                    selectedReservation?.id === reservation.id
+                      ? "bg-gray-50"
+                      : ""
+                  }
+                  onClick={() => handleViewDetails(reservation)}
+                >
                   <TableCell className="font-medium">
                     {reservation.propertyDetails.title}
                   </TableCell>
@@ -255,7 +362,10 @@ const HostReservationsTable = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleViewDetails(reservation)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewDetails(reservation);
+                      }}
                     >
                       View Details
                     </Button>
@@ -382,6 +492,83 @@ const HostReservationsTable = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Block Reservations Modal */}
+      <Dialog open={isBlockModalOpen} onOpenChange={setIsBlockModalOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Block Reservation Dates</DialogTitle>
+            <DialogDescription>
+              Select a property and dates to block for reservations
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            {/* Property Selection */}
+            <div className="grid gap-2">
+              <Label htmlFor="property">Select Property</Label>
+              <Select
+                value={selectedProperty}
+                onValueChange={setSelectedProperty}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a property" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hostProperties.map((property) => (
+                    <SelectItem key={property._id} value={property._id}>
+                      {property.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date Selection Calendar */}
+            <div className="grid gap-2">
+              <Label>Select Dates to Block</Label>
+              <div className="border rounded-md p-4">
+                <Calendar
+                  mode="multiple"
+                  selected={selectedDates}
+                  onSelect={setSelectedDates}
+                  className="rounded-md border"
+                  disabled={(date) =>
+                    date < new Date(new Date().setHours(0, 0, 0, 0))
+                  }
+                />
+              </div>
+              {selectedDates.length > 0 && (
+                <div className="text-sm text-gray-500">
+                  {selectedDates.length} date(s) selected
+                </div>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsBlockModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="bg-red-500 hover:bg-red-600 text-white"
+                onClick={handleBlockReservations}
+                disabled={
+                  !selectedProperty ||
+                  selectedDates.length === 0 ||
+                  blockingLoading
+                }
+              >
+                {blockingLoading ? "Blocking..." : "Block Dates"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

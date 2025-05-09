@@ -30,7 +30,6 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [formData, setFormData] = useState({
     title: "",
-    category: "",
     price: "",
     weekendPrice: "",
     description: "",
@@ -46,6 +45,7 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
     postalCode: "",
     isActive: true,
     maxGuests: "",
+    rooms: "",
     mainImage: null,
     additionalImages: [],
   });
@@ -397,7 +397,6 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
 
       // Append all the regular fields
       formDataToSend.append("title", formData.title);
-      formDataToSend.append("category", formData.category);
       formDataToSend.append("price", Number(formData.price));
       formDataToSend.append("weekendPrice", Number(formData.weekendPrice));
       formDataToSend.append("description", formData.description);
@@ -415,6 +414,7 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
         JSON.stringify(selectedAmenities.map((amenity) => amenity._id))
       );
       formDataToSend.append("maxGuests", Number(formData.maxGuests));
+      formDataToSend.append("rooms", Number(formData.rooms));
       formDataToSend.append("latitude", Number(formData.latitude));
       formDataToSend.append("longitude", Number(formData.longitude));
       formDataToSend.append("address", formData.address);
@@ -452,7 +452,6 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
         onClose();
         setFormData({
           title: "",
-          category: "",
           price: "",
           weekendPrice: "",
           description: "",
@@ -468,6 +467,7 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
           postalCode: "",
           isActive: true,
           maxGuests: "",
+          rooms: "",
           mainImage: null,
           additionalImages: [],
         });
@@ -565,22 +565,24 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="category">Category</Label>
-              <Select
-                value={formData.category}
-                onValueChange={handleCategoryChange}
-              >
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category._id} value={category._id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="rooms">Number of Rooms</Label>
+              <Input
+                id="rooms"
+                type="number"
+                min="1"
+                placeholder="Enter number of rooms"
+                className="h-8"
+                value={formData.rooms}
+                onChange={(e) => {
+                  const value = Math.max(1, parseInt(e.target.value) || 1);
+                  setFormData((prev) => ({
+                    ...prev,
+                    rooms: value,
+                  }));
+                }}
+                required
+              />
+              <p className="text-xs text-gray-500">Minimum 1 room required</p>
             </div>
           </div>
 
@@ -706,44 +708,6 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
               required
             />
             <p className="text-xs text-gray-500">Minimum 1 guest required</p>
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="ownerName">Owner's Name</Label>
-            <Input
-              id="ownerName"
-              placeholder="Enter owner's name"
-              className="h-8"
-              value={formData.ownerName}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="ownerContact">Owner's Contact</Label>
-            <Input
-              id="ownerContact"
-              type="tel"
-              pattern="[0-9]{10}"
-              maxLength="10"
-              placeholder="Enter 10-digit mobile number"
-              className="h-8"
-              value={formData.ownerContact}
-              onChange={(e) => {
-                const value = e.target.value
-                  .replace(/[^0-9]/g, "")
-                  .slice(0, 10);
-                setFormData((prev) => ({
-                  ...prev,
-                  ownerContact: value,
-                }));
-              }}
-              required
-            />
-            <p className="text-xs text-gray-500">
-              Enter a valid 10-digit mobile number
-            </p>
           </div>
 
           <div className="grid gap-1.5">

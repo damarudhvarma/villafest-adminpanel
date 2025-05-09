@@ -40,7 +40,7 @@ const HostPropertiesTable = () => {
   const fetchHostProperties = async () => {
     try {
       const response = await axiosinstance.get("/host-properties/all");
-     
+
       setHostProperties(response.data);
     } catch (error) {
       console.error("Error fetching host properties:", error);
@@ -310,6 +310,13 @@ const HostPropertiesTable = () => {
                 <div>
                   <h3 className="font-medium text-gray-500">Maximum Guests</h3>
                   <p>{selectedProperty.maxGuests} guests</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-500">Number of Rooms</h3>
+                  <p>
+                    {selectedProperty.rooms || "Not specified"}{" "}
+                    {selectedProperty.rooms === 1 ? "room" : "rooms"}
+                  </p>
                 </div>
               </div>
 

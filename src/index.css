@@ -28,7 +28,7 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem
+    --radius: 0.5rem;
   }
   .dark {
     --background: 240 10% 3.9%;
@@ -54,7 +54,7 @@
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%
+    --chart-5: 340 75% 55%;
   }
 }
 
@@ -65,4 +65,89 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Day Picker styles */
+.rdp {
+  --rdp-cell-size: 40px; /* Size of cell */
+  --rdp-caption-font-size: 14px; /* Font size for caption */
+  --rdp-accent-color: #0f172a; /* Accent color */
+  --rdp-background-color: #e2e8f0; /* Background color */
+  --rdp-accent-color-dark: #1e293b; /* Accent color dark mode */
+  --rdp-background-color-dark: #334155; /* Background color dark mode */
+  --rdp-outline: 2px solid var(--rdp-accent-color); /* Outline */
+  --rdp-outline-selected: 2px solid var(--rdp-accent-color); /* Outline selected */
+  margin: 1rem 0;
+}
+
+.custom-calendar {
+  width: 100%;
+}
+
+.custom-calendar .rdp-months {
+  width: 100%;
+}
+
+.custom-calendar .rdp-month {
+  width: 100%;
+}
+
+.custom-calendar .rdp-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.custom-calendar .rdp-head_row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 8px;
+}
+
+.custom-calendar .rdp-head_cell {
+  text-align: center;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: #6b7280;
+  padding: 0.5rem 0;
+}
+
+.custom-calendar .rdp-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 2px;
+}
+
+.custom-calendar .rdp-cell {
+  text-align: center;
+  padding: 0;
+}
+
+.custom-calendar .rdp-day {
+  margin: auto;
+  width: 40px;
+  max-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.custom-calendar .rdp-day_selected {
+  background-color: var(--rdp-accent-color);
+  color: white;
+}
+
+.custom-calendar .rdp-day_today {
+  background-color: var(--rdp-background-color);
+  font-weight: bold;
+}
+
+.custom-calendar .rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+  background-color: var(--rdp-background-color);
+}
+
+.custom-calendar .rdp-button:focus-visible:not([disabled]) {
+  outline: var(--rdp-outline);
 }

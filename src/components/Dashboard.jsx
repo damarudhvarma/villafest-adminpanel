@@ -18,7 +18,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import ListingsTable from "./ListingsTable";
 import ReservationsTable from "./ReservationsTable";
-import CategoriesTable from "./CategoriesTable";
 import HostsTable from "./HostsTable";
 import CouponsTable from "./CouponsTable";
 import HostPropertiesTable from "./HostPropertiesTable";
@@ -430,14 +429,7 @@ const Dashboard = () => {
 
   const fetchTotalRevenue = async () => {
     try {
-      const response = await axiosinstance.get("/bookings/all");
-      if (response.data.success) {
-        const totalRevenue = response.data.data.reduce(
-          (sum, reservation) => sum + reservation.totalPrice,
-          0
-        );
-        setTotalRevenue(totalRevenue);
-      }
+      setTotalRevenue(0);
     } catch (error) {
       console.error("Error fetching total revenue:", error);
     }
@@ -491,8 +483,6 @@ const Dashboard = () => {
         );
       case "Reservations":
         return <ReservationsTable />;
-      case "Categories":
-        return <CategoriesTable />;
       case "Amenities":
         return <AmenitiesTable />;
       case "Hosts":
@@ -690,16 +680,6 @@ const Dashboard = () => {
             }`}
           >
             Reservations
-          </button>
-          <button
-            onClick={() => setActiveTab("Categories")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === "Categories"
-                ? "bg-[#0f172a] text-white"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            Categories
           </button>
           <button
             onClick={() => setActiveTab("Amenities")}

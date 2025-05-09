@@ -251,6 +251,15 @@ const HostListingsTable = () => {
                   </h3>
                   <p>{selectedProperty.maxGuests} guests</p>
                 </div>
+                <div>
+                  <h3 className="font-medium text-sm text-gray-500">
+                    Number of Rooms
+                  </h3>
+                  <p>
+                    {selectedProperty.rooms || "Not specified"}{" "}
+                    {selectedProperty.rooms === 1 ? "room" : "rooms"}
+                  </p>
+                </div>
               </div>
 
               <div>

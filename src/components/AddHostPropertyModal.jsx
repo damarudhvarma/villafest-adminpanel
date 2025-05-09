@@ -24,7 +24,6 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
   const markerRef = useRef(null);
   const [formData, setFormData] = useState({
     title: "",
-    category: "",
     price: "",
     weekendPrice: "",
     description: "",
@@ -37,6 +36,7 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
     state: "",
     postalCode: "",
     maxGuests: "",
+    rooms: "",
     owner: {
       name: "",
       contact: "",
@@ -372,6 +372,17 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
       return;
     }
 
+    // Validate form data
+    if (!formData.rooms || formData.rooms < 1) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Number of rooms is required and must be at least 1",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const formDataToSend = new FormData();
 
@@ -439,7 +450,6 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
         // Reset form
         setFormData({
           title: "",
-          category: "",
           price: "",
           weekendPrice: "",
           description: "",
@@ -452,6 +462,7 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
           state: "",
           postalCode: "",
           maxGuests: "",
+          rooms: "",
           owner: {
             name: "",
             contact: "",
@@ -520,22 +531,18 @@ const AddHostPropertyModal = ({ isOpen, onClose, onPropertyAdded }) => {
               />
             </div>
             <div>
-              <Label htmlFor="category">Category</Label>
-              <select
-                id="category"
-                name="category"
-                value={formData.category}
+              <Label htmlFor="rooms">Number of Rooms</Label>
+              <Input
+                id="rooms"
+                name="rooms"
+                type="number"
+                min="1"
+                value={formData.rooms}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border rounded-md"
                 required
-              >
-                <option value="">Select a category</option>
-                {categories.map((category) => (
-                  <option key={category._id} value={category._id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="Enter number of rooms"
+              />
+              <p className="text-xs text-gray-500">Minimum 1 room required</p>
             </div>
             <div>
               <Label htmlFor="propertyOwnerName">Property Owner Name</Label>
