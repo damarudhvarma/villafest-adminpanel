@@ -502,17 +502,39 @@ const HostsTable = () => {
                   )}
 
                   {/* Amenities */}
-                  {selectedHost.enquiry.amenities?.length > 0 && (
+                  {(selectedHost.enquiry?.amenities?.length > 0 ||
+                    selectedHost.enquiry?.customAmenities?.length > 0) && (
                     <div className="bg-teal-50 p-4 rounded-lg">
                       <h3 className="font-medium text-sm text-gray-500 mb-2">
                         Amenities
                       </h3>
                       <div className="flex flex-wrap gap-2">
-                        {selectedHost.enquiry.amenities.map(
+                        {/* Standard Amenities */}
+                        {selectedHost.enquiry?.amenities?.map(
                           (amenity, index) => (
                             <span
-                              key={index}
-                              className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                              key={`standard-${index}`}
+                              className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center gap-2"
+                            >
+                              {amenity.icon && (
+                                <img
+                                  src={`${import.meta.env.VITE_SERVER_URL}${
+                                    amenity.icon
+                                  }`}
+                                  alt={amenity.name}
+                                  className="w-4 h-4"
+                                />
+                              )}
+                              {amenity.name}
+                            </span>
+                          )
+                        )}
+                        {/* Custom Amenities */}
+                        {selectedHost.enquiry?.customAmenities?.map(
+                          (amenity, index) => (
+                            <span
+                              key={`custom-${index}`}
+                              className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm"
                             >
                               {amenity}
                             </span>
