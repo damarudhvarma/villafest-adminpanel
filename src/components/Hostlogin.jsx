@@ -8,10 +8,12 @@ import { hostAxiosInstance } from "@/axios/axios";
 import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
 import { HostContext } from "@/context/HostContext";
+import { auth, provider } from "@/firebase";
+import { signInWithPopup } from "firebase/auth";
 
 const Hostlogin = () => {
   const navigate = useNavigate();
-  const {setHost}= useContext(HostContext)
+  const { setHost } = useContext(HostContext);
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     email: "",
@@ -43,19 +45,15 @@ const Hostlogin = () => {
         const { authToken, host } = response.data.data;
         console.log(response.data.data);
 
-        
         localStorage.setItem("HostToken", authToken);
 
-        
         setHost(host);
 
-        
         toast({
           title: "Success",
           description: "Login successful! Welcome back.",
         });
 
-        
         navigate("/host-dashboard");
       }
     } catch (error) {
@@ -79,6 +77,44 @@ const Hostlogin = () => {
       } else {
         setError("An error occurred during login. Please try again.");
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      if (!user) throw new Error("No user returned from Google");
+      const idToken = await user.getIdToken();
+      const email = user.email;
+      // Send idToken and email to backend
+      const response = await hostAxiosInstance.post("/hosts/firebase-login", {
+        idToken,
+        email,
+      });
+      if (response.data.success) {
+        const { authToken, host } = response.data.data;
+        localStorage.setItem("HostToken", authToken);
+        setHost(host);
+        toast({
+          title: "Success",
+          description: "Login successful! Welcome back.",
+        });
+        navigate("/host-dashboard");
+      } else {
+        setError("Google login failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Google login error:", error);
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "An error occurred during Google login. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -167,6 +203,23 @@ const Hostlogin = () => {
               </Button>
             </div>
           </form>
+          <div className="my-4 flex items-center justify-center">
+            <span className="text-gray-400 text-sm">or</span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2 border border-gray-300 py-2 px-4 rounded-md shadow-sm text-sm font-medium bg-white hover:bg-gray-50"
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+          >
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              alt="Google"
+              className="w-5 h-5 mr-2"
+            />
+            Continue with Gmail
+          </Button>
         </div>
       </div>
     </div>
