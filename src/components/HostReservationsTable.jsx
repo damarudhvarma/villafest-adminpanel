@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,7 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
+import DateRangePicker from "./DateRangePicker";
+import { Trash } from "lucide-react";
 
 const HostReservationsTable = () => {
   const [reservations, setReservations] = useState([]);
@@ -42,31 +43,36 @@ const HostReservationsTable = () => {
   const [selectedProperty, setSelectedProperty] = useState("");
   const [selectedDates, setSelectedDates] = useState([]);
   const [blockingLoading, setBlockingLoading] = useState(false);
+  const [bookedDates, setBookedDates] = useState([]);
+  const [blockedDates, setBlockedDates] = useState([]);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchReservations();
+  // Helper function to get all dates between start and end
+  // Memoize this function to prevent recreation on each render
+  const getDatesInRange = useCallback((startDate, endDate) => {
+    const dates = [];
+    const currentDate = new Date(startDate);
+    const lastDate = new Date(endDate);
+
+    // Set time to beginning of day to compare only dates
+    currentDate.setHours(0, 0, 0, 0);
+    lastDate.setHours(0, 0, 0, 0);
+
+    // Add each date in the range
+    while (currentDate <= lastDate) {
+      dates.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return dates;
   }, []);
 
-  useEffect(() => {
-    if (isBlockModalOpen) {
-      fetchHostProperties();
-    }
-  }, [isBlockModalOpen]);
-
-  useEffect(() => {
-    filterReservations();
-  }, [reservations, searchQuery, filterStatus]);
-
-  const fetchReservations = async () => {
+  // Define all callback functions before useEffect hooks that use them
+  const fetchReservations = useCallback(async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem("HostToken");
-      const response = await hostAxiosInstance.get("/bookings/host-property", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await hostAxiosInstance.get("/bookings/host-property");
 
       if (response.data.success) {
         setReservations(response.data.data);
@@ -81,25 +87,17 @@ const HostReservationsTable = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
-  const fetchHostProperties = async () => {
+  const fetchHostProperties = useCallback(async () => {
     try {
-      const token = localStorage.getItem("HostToken");
-      const response = await hostAxiosInstance.get(
-        "/host-properties/get-host-property",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await hostAxiosInstance.get("/properties/active");
 
       if (response.data.success) {
-        setHostProperties(response.data.data);
-        // Set default property if available
-        if (response.data.data.length > 0) {
-          setSelectedProperty(response.data.data[0]._id);
+        setHostProperties(response.data.properties);
+        // Set default property if available and no property is currently selected
+        if (response.data.properties.length > 0 && !selectedProperty) {
+          setSelectedProperty(response.data.properties[0]._id);
         }
       }
     } catch (error) {
@@ -110,57 +108,63 @@ const HostReservationsTable = () => {
         description: "Failed to fetch properties. Please try again.",
       });
     }
-  };
+  }, [toast, selectedProperty]);
 
-  const handleBlockReservations = async () => {
-    if (!selectedProperty || selectedDates.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please select a property and dates to block",
-      });
-      return;
-    }
+  const fetchBookedDates = useCallback(async () => {
+    if (!selectedProperty || !hostProperties.length) return;
 
     try {
-      setBlockingLoading(true);
-      const token = localStorage.getItem("HostToken");
-      const response = await hostAxiosInstance.post(
-        `/host-properties/${selectedProperty}/block-dates`,
-        {
-          blockedDates: selectedDates,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // Find the selected property in our already loaded properties
+      const property = hostProperties.find((p) => p._id === selectedProperty);
 
-      if (response.data.success) {
-        toast({
-          title: "Success",
-          description: "Dates blocked successfully",
+      if (property && property.bookedDates && property.bookedDates.length) {
+        // Process booked dates from the property data
+        const bookedDatesList = [];
+
+        // Extract dates from bookedDates array
+        property.bookedDates.forEach((booking) => {
+          const checkIn = new Date(booking.checkIn);
+          const checkOut = new Date(booking.checkOut);
+
+          // Get all dates between check-in and check-out
+          const dates = getDatesInRange(checkIn, checkOut);
+          bookedDatesList.push(...dates);
         });
-        setIsBlockModalOpen(false);
-        fetchReservations();
-        // Reset selections
-        setSelectedDates([]);
-        setSelectedProperty("");
+
+        setBookedDates(bookedDatesList);
+      } else {
+        setBookedDates([]);
+      }
+
+      // Process blocked dates if they exist
+      if (property && property.blockedDates && property.blockedDates.length) {
+        const blockedDatesList = [];
+
+        // Extract dates from blockedDates array
+        property.blockedDates.forEach((blockData) => {
+          if (blockData.startDate && blockData.endDate) {
+            const startDate = new Date(blockData.startDate);
+            const endDate = new Date(blockData.endDate);
+
+            // Get all dates between start and end dates
+            const dates = getDatesInRange(startDate, endDate);
+            blockedDatesList.push(...dates);
+          }
+        });
+
+        setBlockedDates(blockedDatesList);
+      } else {
+        setBlockedDates([]);
       }
     } catch (error) {
-      console.error("Error blocking dates:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.response?.data?.message || "Failed to block dates",
-      });
-    } finally {
-      setBlockingLoading(false);
+      console.error("Error processing dates:", error);
+      setBookedDates([]);
+      setBlockedDates([]);
     }
-  };
+  }, [selectedProperty, hostProperties, getDatesInRange]);
 
-  const filterReservations = () => {
+  // Filter reservations - memoize this function or the result
+  const filterReservations = useCallback(() => {
     let filtered = [...reservations];
 
     // Apply search filter
@@ -193,19 +197,185 @@ const HostReservationsTable = () => {
     }
 
     setFilteredReservations(filtered);
-  };
+  }, [reservations, searchQuery, filterStatus]);
 
-  const handleViewDetails = (reservation) => {
+  const handleBlockReservations = useCallback(async () => {
+    if (!selectedProperty || selectedDates.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a property and dates to block",
+      });
+      return;
+    }
+
+    try {
+      setBlockingLoading(true);
+
+      // Get the earliest and latest dates from the selection
+      const sortedDates = [...selectedDates].sort(
+        (a, b) => a.getTime() - b.getTime()
+      );
+      const startDate = sortedDates[0];
+      const endDate = sortedDates[sortedDates.length - 1];
+
+      // Format dates to ISO string format for the server
+      const formattedStartDate = startDate.toISOString();
+      const formattedEndDate = endDate.toISOString();
+
+      const response = await hostAxiosInstance.post(
+        `/properties/${selectedProperty}/block-dates`,
+        {
+          startDate: formattedStartDate,
+          endDate: formattedEndDate,
+        }
+      );
+
+      if (response.data.success) {
+        toast({
+          title: "Success",
+          description: "Dates blocked successfully",
+        });
+
+        // Close modal first to prevent extra renders while data is loading
+        setIsBlockModalOpen(false);
+
+        // Reset selections before fetching new data
+        setSelectedDates([]);
+        setSelectedProperty("");
+
+        // After state is reset, fetch updated data
+        setTimeout(() => {
+          fetchReservations();
+          fetchHostProperties();
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Error blocking dates:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.response?.data?.message || "Failed to block dates",
+      });
+    } finally {
+      setBlockingLoading(false);
+    }
+  }, [
+    selectedProperty,
+    selectedDates,
+    toast,
+    fetchReservations,
+    fetchHostProperties,
+  ]);
+
+  const handleDeleteBlockedDate = useCallback(
+    async (date) => {
+      if (!selectedProperty) return;
+
+      try {
+        setIsDeleteLoading(true);
+
+        // Find the block entry that contains this date
+        const property = hostProperties.find((p) => p._id === selectedProperty);
+
+        if (!property || !property.blockedDates) {
+          throw new Error("Property or blocked dates not found");
+        }
+
+        // Find which block contains this date
+        const targetDate = new Date(date);
+        targetDate.setHours(0, 0, 0, 0);
+
+        let blockIdToDelete = null;
+
+        // Find the block ID that contains this date
+        for (const block of property.blockedDates) {
+          const startDate = new Date(block.startDate);
+          const endDate = new Date(block.endDate);
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setHours(0, 0, 0, 0);
+
+          const datesInRange = getDatesInRange(startDate, endDate);
+
+          // Check if our target date is in this range
+          if (datesInRange.some((d) => d.getTime() === targetDate.getTime())) {
+            blockIdToDelete = block._id;
+            break;
+          }
+        }
+
+        if (!blockIdToDelete) {
+          throw new Error("Could not find the block containing this date");
+        }
+
+        const response = await hostAxiosInstance.delete(
+          `/properties/${selectedProperty}/blocked-date/${blockIdToDelete}`
+        );
+
+        if (response.data.success) {
+          toast({
+            title: "Success",
+            description: "Blocked date removed successfully",
+          });
+
+          // Refetch property data to update blocked dates
+          fetchHostProperties();
+        }
+      } catch (error) {
+        console.error("Error deleting blocked date:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to remove blocked date",
+        });
+      } finally {
+        setIsDeleteLoading(false);
+      }
+    },
+    [
+      selectedProperty,
+      hostProperties,
+      toast,
+      fetchHostProperties,
+      getDatesInRange,
+    ]
+  );
+
+  // Memoize this function to prevent recreation on each render
+  const handleViewDetails = useCallback((reservation) => {
     setSelectedReservation(reservation);
     setIsDetailsOpen(true);
-  };
+  }, []);
 
+  // Format date in DD/MM/YY format
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const year = date.getFullYear().toString().slice(-2);
-    return `${day}/${month}/${year}`;
+    try {
+      // If dateString is undefined or null, return "Invalid Date"
+      if (!dateString) {
+        return "Invalid Date";
+      }
+
+      // Create a new date object from the input string
+      const date = new Date(dateString);
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.error("Invalid date:", dateString);
+        return "Invalid Date";
+      }
+
+      // Format the date as DD/MM/YY
+      const day = date.getDate().toString().padStart(2, "0");
+      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+      const year = date.getFullYear().toString().slice(-2);
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      console.error("Error formatting date:", error, dateString);
+      return "Invalid Date";
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -241,6 +411,31 @@ const HostReservationsTable = () => {
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
+
+  const handleDatesSelected = useCallback((dates) => {
+    setSelectedDates(dates);
+  }, []);
+
+  // Now define useEffect hooks after all the functions they depend on
+  useEffect(() => {
+    fetchReservations();
+  }, [fetchReservations]);
+
+  useEffect(() => {
+    if (isBlockModalOpen) {
+      fetchHostProperties();
+    }
+  }, [isBlockModalOpen, fetchHostProperties]);
+
+  useEffect(() => {
+    if (selectedProperty) {
+      fetchBookedDates();
+    }
+  }, [selectedProperty, fetchBookedDates]);
+
+  useEffect(() => {
+    filterReservations();
+  }, [filterReservations]);
 
   return (
     <>
@@ -497,20 +692,25 @@ const HostReservationsTable = () => {
 
       {/* Block Reservations Modal */}
       <Dialog open={isBlockModalOpen} onOpenChange={setIsBlockModalOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Block Reservation Dates</DialogTitle>
             <DialogDescription>
               Select a property and dates to block for reservations
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-6 py-4">
+          <div className="grid gap-4 py-3">
             {/* Property Selection */}
             <div className="grid gap-2">
-              <Label htmlFor="property">Select Property</Label>
+              <Label htmlFor="property" className="text-sm font-medium">
+                Select Property
+              </Label>
               <Select
                 value={selectedProperty}
-                onValueChange={setSelectedProperty}
+                onValueChange={(value) => {
+                  setSelectedProperty(value);
+                  setSelectedDates([]);
+                }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a property" />
@@ -523,41 +723,145 @@ const HostReservationsTable = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Date Selection Calendar */}
-            <div className="grid gap-2">
-              <Label>Select Dates to Block</Label>
-              <div className="border rounded-md p-4">
-                <Calendar
-                  mode="multiple"
-                  selected={selectedDates}
-                  onSelect={setSelectedDates}
-                  className="rounded-md border"
-                  disabled={(date) =>
-                    date < new Date(new Date().setHours(0, 0, 0, 0))
+              {selectedProperty && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {
+                    hostProperties.find((p) => p._id === selectedProperty)
+                      ?.title
+                  }{" "}
+                  -
+                  {
+                    hostProperties.find((p) => p._id === selectedProperty)
+                      ?.address.city
                   }
-                />
-              </div>
-              {selectedDates.length > 0 && (
-                <div className="text-sm text-gray-500">
-                  {selectedDates.length} date(s) selected
+                  ,
+                  {
+                    hostProperties.find((p) => p._id === selectedProperty)
+                      ?.address.state
+                  }
                 </div>
               )}
             </div>
 
+            {/* Date Selection Calendar */}
+            <div className="grid gap-2">
+              <Label className="text-sm font-medium">
+                Select Dates to Block
+              </Label>
+              {selectedProperty ? (
+                <>
+                  <DateRangePicker
+                    onDatesSelected={handleDatesSelected}
+                    excludedDates={bookedDates}
+                    blockedDates={blockedDates}
+                  />
+                  {bookedDates.length > 0 && (
+                    <div className="text-xs text-amber-600 mt-1">
+                      Note: Red dates are already booked and cannot be selected
+                    </div>
+                  )}
+                  {blockedDates.length > 0 && (
+                    <div className="text-xs text-gray-700 mt-1">
+                      Note: Black dates are already blocked and cannot be
+                      selected
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-gray-500 italic">
+                  Please select a property first
+                </p>
+              )}
+              {selectedDates.length > 0 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {selectedDates.length} date(s) selected for blocking
+                </div>
+              )}
+            </div>
+
+            {/* Currently Blocked Dates Table */}
+            {selectedProperty &&
+              hostProperties.find((p) => p._id === selectedProperty)
+                ?.blockedDates?.length > 0 && (
+                <div className="grid gap-2 mt-2">
+                  <Label className="text-sm font-medium">
+                    Currently Blocked Dates
+                  </Label>
+                  <div className="border rounded-md overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs py-2">
+                            Property
+                          </TableHead>
+                          <TableHead className="text-xs py-2">From</TableHead>
+                          <TableHead className="text-xs py-2">To</TableHead>
+                          <TableHead className="text-xs py-2 w-[50px]">
+                            Action
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(() => {
+                          const property = hostProperties.find(
+                            (p) => p._id === selectedProperty
+                          );
+
+                          if (!property || !property.blockedDates) {
+                            return null;
+                          }
+
+                          return property.blockedDates.map((block, index) => {
+                            const startDate = new Date(block.startDate);
+                            const endDate = new Date(block.endDate);
+
+                            return (
+                              <TableRow key={block._id || index}>
+                                <TableCell className="py-2 text-xs">
+                                  {property.title}
+                                </TableCell>
+                                <TableCell className="py-2 text-xs">
+                                  {formatDate(startDate)}
+                                </TableCell>
+                                <TableCell className="py-2 text-xs">
+                                  {formatDate(endDate)}
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() =>
+                                      handleDeleteBlockedDate(startDate)
+                                    }
+                                    disabled={isDeleteLoading}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          });
+                        })()}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
             {/* Buttons */}
-            <div className="flex justify-end gap-2 mt-4">
+            <div className="flex justify-end gap-2 mt-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsBlockModalOpen(false)}
+                className="h-9 px-4"
               >
                 Cancel
               </Button>
               <Button
                 type="button"
-                className="bg-red-500 hover:bg-red-600 text-white"
+                className="bg-red-500 hover:bg-red-600 text-white h-9 px-4"
                 onClick={handleBlockReservations}
                 disabled={
                   !selectedProperty ||

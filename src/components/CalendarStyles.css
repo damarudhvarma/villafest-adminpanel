@@ -1,0 +1,240 @@
+/* Date Picker Container Styles */
+.date-picker-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: #f9fafb;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+  max-width: 100%;
+}
+
+.date-picker-container:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+  border-color: #d1d5db;
+}
+
+.date-picker-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.date-picker-wrapper label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.date-picker-wrapper label:before {
+  content: "📅";
+  font-size: 1rem;
+}
+
+.date-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #4b5563;
+  background-color: white;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.date-input:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: #008073;
+  box-shadow: 0 0 0 3px rgba(0, 128, 115, 0.1);
+}
+
+/* Calendar Styles */
+.react-datepicker {
+  font-family: inherit;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.react-datepicker__header {
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  padding: 0.75rem;
+}
+
+.react-datepicker__day {
+  width: 2rem;
+  height: 2rem;
+  line-height: 2rem;
+  margin: 0.15rem;
+  border-radius: 50%;
+  color: #374151;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.react-datepicker__day:hover {
+  background-color: #f3f4f6;
+  color: #008073;
+}
+
+.react-datepicker__day--selected {
+  background-color: #008073 !important;
+  color: white !important;
+}
+
+.react-datepicker__day--keyboard-selected {
+  background-color: #008073 !important;
+  color: white !important;
+}
+
+.react-datepicker__day--disabled {
+  color: #9ca3af !important;
+  background-color: #f3f4f6 !important;
+  cursor: not-allowed;
+}
+
+.react-datepicker__day--past {
+  color: #d1d5db !important;
+  background-color: #f9fafb !important;
+  cursor: not-allowed;
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.react-datepicker__day--booked {
+  background-color: #fee2e2 !important;
+  color: #ef4444 !important;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.react-datepicker__day--blocked {
+  background-color: #1f2937 !important;
+  color: white !important;
+  cursor: not-allowed;
+  font-weight: 500;
+}
+
+.react-datepicker__day--available {
+  background-color: #f0fdf4 !important;
+  color: #22c55e !important;
+}
+
+.react-datepicker__day--in-range {
+  background-color: #e0f2fe !important;
+  color: #0ea5e9 !important;
+}
+
+.react-datepicker__day--check-in {
+  background-color: #e0f2fe !important;
+  color: #0ea5e9 !important;
+  cursor: pointer;
+}
+
+.react-datepicker__day-name {
+  width: 2rem;
+  height: 2rem;
+  line-height: 2rem;
+  margin: 0.15rem;
+  color: #6b7280;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.react-datepicker__current-month {
+  color: #111827;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.react-datepicker__navigation {
+  top: 0.75rem;
+}
+
+.react-datepicker__navigation--previous {
+  left: 0.75rem;
+}
+
+.react-datepicker__navigation--next {
+  right: 0.75rem;
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: #008073;
+  border-width: 2px 2px 0 0;
+}
+
+.react-datepicker__month {
+  margin: 0.4rem;
+}
+
+/* Calendar Legend */
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+
+.legend-color {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+}
+
+.legend-color.available {
+  background-color: #f0fdf4;
+  border: 1px solid #22c55e;
+}
+
+.legend-color.booked {
+  background-color: #fee2e2;
+  border: 1px solid #ef4444;
+}
+
+.legend-color.blocked {
+  background-color: #1f2937;
+  border: 1px solid #111827;
+  color: white;
+}
+
+.legend-color.past {
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  opacity: 0.8;
+}
+
+.legend-color.check-in {
+  background-color: #e0f2fe;
+  border: 1px solid #0ea5e9;
+}
