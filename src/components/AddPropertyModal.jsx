@@ -711,7 +711,7 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
 
           <div className="grid gap-1.5">
-            <Label>Location</Label>
+            <Label className="mb-3 ">Location</Label>
             <div className="grid gap-3">
               <div className="grid gap-1.5">
                 <MapComponent

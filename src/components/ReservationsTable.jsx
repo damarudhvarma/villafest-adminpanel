@@ -24,7 +24,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import DateRangePicker from "./DateRangePicker";
+import { Label } from "@/components/ui/label";
+import { Trash } from "lucide-react";
 
 const ReservationsTable = () => {
   const [reservations, setReservations] = useState([]);
@@ -34,6 +38,14 @@ const ReservationsTable = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [allProperties, setAllProperties] = useState([]);
+  const [selectedProperty, setSelectedProperty] = useState("");
+  const [selectedDates, setSelectedDates] = useState([]);
+  const [blockingLoading, setBlockingLoading] = useState(false);
+  const [bookedDates, setBookedDates] = useState([]);
+  const [blockedDates, setBlockedDates] = useState([]);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
 
   useEffect(() => {
     fetchReservations();
@@ -42,6 +54,12 @@ const ReservationsTable = () => {
   useEffect(() => {
     filterReservations();
   }, [reservations, searchTerm, filterStatus]);
+
+  useEffect(() => {
+    if (isBlockModalOpen) {
+      fetchAllProperties();
+    }
+  }, [isBlockModalOpen]);
 
   const fetchReservations = async () => {
     try {
@@ -145,16 +163,128 @@ const ReservationsTable = () => {
     setIsDetailsOpen(true);
   };
 
+  const fetchAllProperties = async () => {
+    try {
+      const response = await axiosinstance.get("/properties/get-properties");
+      if (response.data.success) {
+        setAllProperties(response.data.properties);
+        // Set default property if available and none selected
+        if (response.data.properties.length > 0 && !selectedProperty) {
+          setSelectedProperty(response.data.properties[0]._id);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching properties:", error);
+    }
+  };
+
+  // When selectedProperty changes, update booked/blocked dates
+  useEffect(() => {
+    if (!selectedProperty || !allProperties.length) {
+      setBookedDates([]);
+      setBlockedDates([]);
+      return;
+    }
+    const property = allProperties.find((p) => p._id === selectedProperty);
+    // Booked Dates
+    let booked = [];
+    if (property && property.bookedDates && property.bookedDates.length) {
+      property.bookedDates.forEach((booking) => {
+        const checkIn = new Date(booking.checkIn);
+        const checkOut = new Date(booking.checkOut);
+        booked.push(...getDatesInRange(checkIn, checkOut));
+      });
+    }
+    setBookedDates(booked);
+    // Blocked Dates
+    let blocked = [];
+    if (property && property.blockedDates && property.blockedDates.length) {
+      property.blockedDates.forEach((block) => {
+        if (block.startDate && block.endDate) {
+          const start = new Date(block.startDate);
+          const end = new Date(block.endDate);
+          blocked.push(...getDatesInRange(start, end));
+        }
+      });
+    }
+    setBlockedDates(blocked);
+  }, [selectedProperty, allProperties]);
+
+  // Helper: get all dates in range
+  const getDatesInRange = (startDate, endDate) => {
+    const dates = [];
+    const current = new Date(startDate);
+    const last = new Date(endDate);
+    current.setHours(0, 0, 0, 0);
+    last.setHours(0, 0, 0, 0);
+    while (current <= last) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  };
+
+  // Handle block dates
+  const handleBlockReservations = async () => {
+    if (!selectedProperty || selectedDates.length === 0) return;
+    try {
+      setBlockingLoading(true);
+      const sorted = [...selectedDates].sort((a, b) => a - b);
+      const startDate = sorted[0];
+      const endDate = sorted[sorted.length - 1];
+      const formattedStart = startDate.toISOString();
+      const formattedEnd = endDate.toISOString();
+      const response = await axiosinstance.post(
+        `/properties/${selectedProperty}/block-dates`,
+        { startDate: formattedStart, endDate: formattedEnd }
+      );
+      if (response.data.success) {
+        setIsBlockModalOpen(false);
+        setSelectedDates([]);
+        setSelectedProperty("");
+        setTimeout(() => fetchAllProperties(), 100);
+      }
+    } catch (error) {
+      alert(
+        error.response?.data?.message ||
+          "Failed to block dates. Please try again."
+      );
+    } finally {
+      setBlockingLoading(false);
+    }
+  };
+
+  // Handle delete blocked date range
+  const handleDeleteBlockedDate = async (blockId) => {
+    if (!selectedProperty) return;
+    try {
+      setIsDeleteLoading(true);
+      const response = await axiosinstance.delete(
+        `/properties/${selectedProperty}/blocked-date/${blockId}`
+      );
+      if (response.data.success) {
+        setTimeout(() => fetchAllProperties(), 100);
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to remove blocked date.");
+    } finally {
+      setIsDeleteLoading(false);
+    }
+  };
+
+  // Date selection handler
+  const handleDatesSelected = (dates) => setSelectedDates(dates);
+
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h2 className="text-lg sm:text-xl font-bold">Reservation Management</h2>
-        {/* Add Reservation button commented out
-        <Button className="bg-[#0f172a] hover:bg-[#1e293b] text-white w-full sm:w-auto">
-          <span className="mr-2">+</span>
-          Add Reservation
+        <Button
+          className="bg-red-500 hover:bg-red-600"
+          onClick={() => setIsBlockModalOpen(true)}
+        >
+          Block Reservations
         </Button>
-        */}
       </div>
 
       {/* Search and Filter */}
@@ -384,6 +514,181 @@ const ReservationsTable = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Block Reservations Modal */}
+      <Dialog open={isBlockModalOpen} onOpenChange={setIsBlockModalOpen}>
+        <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Block Reservation Dates</DialogTitle>
+            <DialogDescription>
+              Select a property and dates to block for reservations
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-3">
+            {/* Property Selection */}
+            <div className="grid gap-2">
+              <Label htmlFor="property" className="text-sm font-medium">
+                Select Property
+              </Label>
+              <Select
+                value={selectedProperty}
+                onValueChange={(value) => {
+                  setSelectedProperty(value);
+                  setSelectedDates([]);
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a property" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allProperties.map((property) => (
+                    <SelectItem key={property._id} value={property._id}>
+                      {property.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedProperty && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {allProperties.find((p) => p._id === selectedProperty)?.title}
+                  {" - "}
+                  {
+                    allProperties.find((p) => p._id === selectedProperty)
+                      ?.address?.city
+                  }
+                  {", "}
+                  {
+                    allProperties.find((p) => p._id === selectedProperty)
+                      ?.address?.state
+                  }
+                </div>
+              )}
+            </div>
+            {/* Date Selection Calendar */}
+            <div className="grid gap-2">
+              <Label className="text-sm font-medium">
+                Select Dates to Block
+              </Label>
+              {selectedProperty ? (
+                <>
+                  <DateRangePicker
+                    onDatesSelected={handleDatesSelected}
+                    excludedDates={bookedDates}
+                    blockedDates={blockedDates}
+                  />
+                  {bookedDates.length > 0 && (
+                    <div className="text-xs text-amber-600 mt-1">
+                      Note: Red dates are already booked and cannot be selected
+                    </div>
+                  )}
+                  {blockedDates.length > 0 && (
+                    <div className="text-xs text-gray-700 mt-1">
+                      Note: Black dates are already blocked and cannot be
+                      selected
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-gray-500 italic">
+                  Please select a property first
+                </p>
+              )}
+              {selectedDates.length > 0 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {selectedDates.length} date(s) selected for blocking
+                </div>
+              )}
+            </div>
+            {/* Currently Blocked Dates Table */}
+            {selectedProperty &&
+              allProperties.find((p) => p._id === selectedProperty)
+                ?.blockedDates?.length > 0 && (
+                <div className="grid gap-2 mt-2">
+                  <Label className="text-sm font-medium">
+                    Currently Blocked Dates
+                  </Label>
+                  <div className="border rounded-md overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs py-2">
+                            Property
+                          </TableHead>
+                          <TableHead className="text-xs py-2">From</TableHead>
+                          <TableHead className="text-xs py-2">To</TableHead>
+                          <TableHead className="text-xs py-2 w-[50px]">
+                            Action
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {allProperties
+                          .find((p) => p._id === selectedProperty)
+                          .blockedDates.map((block, idx) => {
+                            const startDate = new Date(block.startDate);
+                            const endDate = new Date(block.endDate);
+                            return (
+                              <TableRow key={block._id || idx}>
+                                <TableCell className="py-2 text-xs">
+                                  {
+                                    allProperties.find(
+                                      (p) => p._id === selectedProperty
+                                    )?.title
+                                  }
+                                </TableCell>
+                                <TableCell className="py-2 text-xs">
+                                  {formatDate(startDate)}
+                                </TableCell>
+                                <TableCell className="py-2 text-xs">
+                                  {formatDate(endDate)}
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() =>
+                                      handleDeleteBlockedDate(block._id)
+                                    }
+                                    disabled={isDeleteLoading}
+                                  >
+                                    <Trash className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            {/* Buttons */}
+            <div className="flex justify-end gap-2 mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsBlockModalOpen(false)}
+                className="h-9 px-4"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="bg-red-500 hover:bg-red-600 text-white h-9 px-4"
+                onClick={handleBlockReservations}
+                disabled={
+                  !selectedProperty ||
+                  selectedDates.length === 0 ||
+                  blockingLoading
+                }
+              >
+                {blockingLoading ? "Blocking..." : "Block Dates"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>
