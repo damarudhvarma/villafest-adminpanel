@@ -379,6 +379,26 @@ const HostsTable = () => {
                 </div>
               </div>
 
+              {/* Government ID Images */}
+              {selectedHost.bankingDetails?.govId?.length > 0 && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="font-medium text-sm text-gray-500 mb-2">
+                    Government ID
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    {selectedHost.bankingDetails.govId.map((idImage, index) => (
+                      <div key={index} className="relative aspect-video">
+                        <img
+                          src={`${import.meta.env.VITE_SERVER_URL}${idImage}`}
+                          alt={`Government ID ${index + 1}`}
+                          className="rounded-lg object-contain w-full h-full"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Enquiry Details */}
               {selectedHost.enquiry && (
                 <>
