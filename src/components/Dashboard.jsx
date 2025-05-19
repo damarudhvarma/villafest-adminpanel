@@ -53,7 +53,6 @@ const Dashboard = () => {
   const [totalProperties, setTotalProperties] = useState(0);
   const [activeReservations, setActiveReservations] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
-  const [occupancyRate, setOccupancyRate] = useState(0);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -94,7 +93,6 @@ const Dashboard = () => {
     fetchTotalProperties();
     fetchActiveReservations();
     fetchTotalRevenue();
-    fetchOccupancyRate();
   }, []);
 
   useEffect(() => {
@@ -435,35 +433,6 @@ const Dashboard = () => {
     }
   };
 
-  const fetchOccupancyRate = async () => {
-    try {
-      const response = await axiosinstance.get("/properties/get-properties");
-      if (response.data.success) {
-        const totalProperties = response.data.properties.length;
-        if (totalProperties > 0) {
-          const bookingsResponse = await axiosinstance.get("/bookings/all");
-          if (bookingsResponse.data.success) {
-            const currentDate = new Date();
-            const activeBookings = bookingsResponse.data.data.filter(
-              (booking) => {
-                const checkOutDate = new Date(booking.bookingDate.checkOut);
-                return (
-                  booking.status === "confirmed" && checkOutDate > currentDate
-                );
-              }
-            );
-            const occupancyRate = Math.round(
-              (activeBookings.length / totalProperties) * 100
-            );
-            setOccupancyRate(occupancyRate);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching occupancy rate:", error);
-    }
-  };
-
   const fetchAmenities = async () => {
     try {
       const response = await axiosinstance.get("/amenities");
@@ -553,7 +522,7 @@ const Dashboard = () => {
         </DropdownMenu>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
         <div className="bg-gradient-to-br from-indigo-50 to-white rounded-lg border border-indigo-100 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -626,32 +595,6 @@ const Dashboard = () => {
                   strokeLinejoin="round"
                   strokeWidth="2"
                   d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-amber-50 to-white rounded-lg border border-amber-100 p-4 sm:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-amber-600">Occupancy Rate</p>
-              <h3 className="text-2xl font-bold text-amber-900 mt-1">
-                {occupancyRate}%
-              </h3>
-            </div>
-            <div className="bg-amber-100 p-3 rounded-full">
-              <svg
-                className="w-6 h-6 text-amber-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                 />
               </svg>
             </div>

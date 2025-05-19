@@ -588,6 +588,34 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
+              <Label htmlFor="ownerName">Owner Name</Label>
+              <Input
+                id="ownerName"
+                placeholder="Enter owner name"
+                className="h-8"
+                value={formData.ownerName}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="ownerContact">Owner Contact Number</Label>
+              <Input
+                id="ownerContact"
+                type="tel"
+                placeholder="Enter owner contact number"
+                className="h-8"
+                value={formData.ownerContact}
+                onChange={handleInputChange}
+                required
+                pattern="[0-9]{10}"
+                title="Please enter a valid 10-digit phone number"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
               <Label htmlFor="price">Regular Price</Label>
               <Input
                 id="price"
@@ -626,14 +654,13 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
 
           <div className="grid gap-1.5">
-            <Label htmlFor="rules">Property Rules</Label>
+            <Label htmlFor="rules">Property Rules (Optional)</Label>
             <Textarea
               id="rules"
               placeholder="Enter property rules separated by commas (e.g., No smoking, No pets, Check-in time)"
               className="h-16"
               value={formData.rules}
               onChange={handleInputChange}
-              required
             />
           </div>
 
@@ -654,6 +681,7 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
                   setSelectedAmenities((prev) => [...prev, selectedAmenity]);
                 }
               }}
+              required
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select amenities" />
@@ -711,7 +739,7 @@ const AddPropertyModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
 
           <div className="grid gap-1.5">
-            <Label className="mb-3 ">Location</Label>
+            <Label className="mb-3">Location</Label>
             <div className="grid gap-3">
               <div className="grid gap-1.5">
                 <MapComponent
